@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>QQBot AI - 纯前端机器人</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --primary:#12B7F5;--primary-dark:#0E9AD1;--primary-light:#E1F5FE;
+  --bg:#F2F3F5;--card:#FFFFFF;--text:#1F2329;--text2:#646A73;--text3:#8F959E;
+  --border:#E5E6EB;--success:#00B42A;--danger:#F53F3F;--warning:#FF7D00;
+  --shadow:0 2px 8px rgba(0,0,0,.05);--safe:env(safe-area-inset-bottom,0px);
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#18191C;--card:#222326;--text:#F2F3F5;--text2:#C9CDD4;--text3:#86909C;--border:#2E2F33;--primary-light:#123348;}
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.5;overflow:hidden;}
+.page{display:none;flex-direction:column;height:100%;}
+.page.active{display:flex;}
+.header{background:var(--primary);color:#fff;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px));display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:5;}
+.header h1{font-size:17px;font-weight:600;}
+.back-btn{background:rgba(255,255,255,.2);border:none;color:#fff;padding:6px 12px;border-radius:6px;font-size:14px;min-height:32px;cursor:pointer;}
+.content{flex:1;overflow-y:auto;padding:14px;}
+.card{background:var(--card);border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow);}
+.card h3{font-size:14px;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--danger);margin-right:6px;vertical-align:middle;}
+.status-dot.on{background:var(--success);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--primary);color:#fff;border:none;padding:12px 16px;border-radius:10px;font-size:15px;font-weight:500;cursor:pointer;min-height:44px;min-width:44px;transition:transform .1s,opacity .2s;}
+.btn:active{transform:scale(.97);}
+.btn.block{width:100%;}
+.btn.secondary{background:var(--card);color:var(--primary);border:1px solid var(--primary);}
+.btn.danger{background:var(--danger);}
+.btn.success{background:var(--success);}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.btn-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;}
+.input,.select,.textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:14px;min-height:42px;font-family:inherit;outline:none;-webkit-appearance:none;}
+.textarea{min-height:80px;resize:vertical;}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--primary);}
+.field{margin-bottom:10px;}
+.field label{display:block;font-size:13px;color:var(--text2);margin-bottom:4px;font-weight:500;}
+.row{display:flex;gap:8px;align-items:center;}
+.row>*{flex:1;}
+.row>button{flex:0 0 auto;}
+.switch{position:relative;width:44px;height:24px;background:var(--border);border-radius:12px;cursor:pointer;transition:background .2s;min-width:44px;min-height:24px;}
+.switch.on{background:var(--success);}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s;}
+.switch.on::after{transform:translateX(20px);}
+.switch-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;}
+.switch-row .lbl{font-size:14px;}
+.switch-row .sub{font-size:12px;color:var(--text3);margin-top:2px;}
+.log{background:#1E1E1E;color:#D4D4D4;font-family:Menlo,Consolas,monospace;font-size:12px;padding:10px;border-radius:8px;max-height:70vh;overflow-y:auto;line-height:1.5;white-space:pre-wrap;word-break:break-all;}
+.log .l-err{color:#F4877A;}.log .l-ok{color:#6A9955;}.log .l-warn{color:#DCCA7E;}.log .l-info{color:#9CDCFE;}
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe);z-index:10;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 0;gap:2px;background:none;border:none;color:var(--text3);font-size:11px;cursor:pointer;min-height:48px;}
+.nav-btn.active{color:var(--primary);}
+.nav-btn .ic{font-size:20px;}
+.provider-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+.provider-item{display:flex;align-items:center;gap:8px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--bg);min-height:48px;}
+.provider-item.active{border-color:var(--primary);background:var(--primary-light);}
+.provider-item .pname{flex:1;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.provider-item .pmeta{font-size:11px;color:var(--text3);}
+.provider-item .pdel{background:var(--danger);color:#fff;border:none;padding:4px 8px;border-radius:6px;font-size:12px;min-height:30px;min-width:30px;cursor:pointer;}
+.provider-item .psel{background:var(--primary);color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:12px;min-height:30px;cursor:pointer;}
+.provider-item.active .psel{background:var(--success);}
+.session-item{padding:12px;border-bottom:1px solid var(--border);cursor:pointer;min-height:52px;}
+.session-item:last-child{border-bottom:none;}
+.session-item .ti{font-weight:600;margin-bottom:3px;display:flex;justify-content:space-between;}
+.session-item .pr{font-size:12px;color:var(--text3);}
+.session-item .tm{font-size:12px;color:var(--text3);}
+.toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 50px);left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:100;max-width:90%;text-align:center;}
+.muted{color:var(--text3);font-size:12px;}
+.msg-bubble{padding:10px 12px;border-radius:12px;margin-bottom:8px;font-size:14px;max-width:85%;word-break:break-all;line-height:1.5;white-space:pre-wrap;}
+.msg-user{background:var(--primary-light);margin-left:auto;}
+.msg-bot{background:var(--bg);margin-right:auto;}
+.msg-meta{font-size:11px;color:var(--text3);margin-bottom:2px;}
+.msg-user+.msg-meta{text-align:right;}
+.kv{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;}
+.kv .k{color:var(--text2);}
+.mem-item{background:var(--bg);padding:8px 10px;border-radius:8px;margin-bottom:6px;font-size:13px;}
+.mem-item .mt{color:var(--text3);font-size:11px;margin-top:2px;}
+.det-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;}
+.stat{background:var(--bg);padding:10px;border-radius:8px;text-align:center;}
+.stat .n{font-size:18px;font-weight:700;color:var(--primary);}
+.stat .l{font-size:11px;color:var(--text3);}
+.hidden{display:none!important;}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.badge{display:inline-block;background:var(--danger);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle;}
+.notice{background:#FFF7E6;border:1px solid #FFE7BA;padding:8px 10px;border-radius:8px;font-size:12px;color:#B7791F;margin-bottom:10px;}
+@media(prefers-color-scheme:dark){.notice{background:#2E2516;border-color:#59401A;color:#FFE7BA;}}
+</style>
+</head>
+<body>
+
+<!-- 状态页 -->
+<div class="page active" id="page-status">
+  <div class="header"><h1><span class="status-dot" id="dot"></span>QQBot AI</h1><span class="muted" id="ver" style="color:rgba(255,255,255,.7);font-size:12px">v10 纯前端版</span></div>
+  <div class="content" style="padding-bottom:70px">
+    <div class="notice">💡 提示：保持本页面打开，机器人就在线；切后台也会尽量保活。建议允许浏览器通知以提升后台存活率。</div>
+    <div class="card">
+      <h3>运行状态</h3>
+      <div id="statusText">未启动</div>
+      <div class="kv"><span class="k">机器人</span><span id="botName">-</span></div>
+      <div class="kv"><span class="k">已连接</span><span id="connTime">-</span></div>
+      <div class="kv"><span class="k">已处理消息</span><span id="msgCount">0</span></div>
+      <button class="btn block" id="btnToggle" onclick="toggleBot()" type="button">🚀 启动机器人</button>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="testAI()" type="button">🧪 测试AI</button>
+        <button class="btn secondary" onclick="diag()" type="button">🔍 诊断</button>
+      </div>
+      <button class="btn secondary block" onclick="refreshToken()" type="button" style="margin-top:8px">🔄 刷新Token</button>
+    </div>
+    <div class="card">
+      <h3>手动Token（兜底）</h3>
+      <div class="row">
+        <input class="input" id="manualToken" placeholder="万一代理全挂，粘贴Token到这">
+        <button class="btn" onclick="useManualToken()" type="button">使用</button>
+      </div>
+      <div class="muted" style="margin-top:6px">Token在 <a href="https://bot.q.qq.com/sandbox" target="_blank" style="color:var(--primary)">QQ机器人调试工具</a> 获取，有效期2小时</div>
+    </div>
+    <div class="card">
+      <h3>Token有效期</h3>
+      <div id="tokenExpire">尚未获取</div>
+    </div>
+  </div>
+</div>
+
+<!-- 设置页 -->
+<div class="page" id="page-settings">
+  <div class="header"><h1>⚙️ 设置</h1></div>
+  <div class="content" style="padding-bottom:70px">
+    <div class="card">
+      <h3>QQ 机器人凭据</h3>
+      <div class="field"><label>AppID</label><input class="input" id="appId" placeholder="请输入你的AppID"></div>
+      <div class="field"><label>AppSecret</label><input class="input" id="appSecret" type="password" placeholder="请输入你的AppSecret"></div>
+      <div class="field"><label>沙箱模式（新机器人必开）</label>
+        <div class="switch on" id="swSandbox" onclick="toggleSwitch('swSandbox')"></div>
+        <div class="muted">沙箱模式只响应你的测试频道/测试群，正式上线关闭</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>AI 供应商 <button class="btn secondary" onclick="addProviderSlot()" type="button" style="padding:6px 12px;min-height:34px;font-size:13px">➕ 添加槽位</button></h3>
+      <div class="provider-list" id="provList"></div>
+      <div class="muted">• 默认是免费公益站（无需Key）<br>• 点击「选中」切换当前使用的供应商<br>• 不同供应商配置独立保存</div>
+    </div>
+    <div class="card">
+      <h3>机器人设置</h3>
+      <div class="field"><label>系统提示词（人设）</label><textarea class="textarea" id="sysPrompt">你是一个友善可爱的AI助手，回复简洁自然，不啰嗦。</textarea></div>
+      <div class="field">
+        <div class="switch-row"><div><div class="lbl">⏰ 注入当前时间</div><div class="sub">让AI知道现在几点/星期几</div></div><div class="switch on" id="swTime" onclick="toggleSwitch('swTime')"></div></div>
+        <div class="switch-row"><div><div class="lbl">🧠 长期记忆</div><div class="sub">超窗自动AI摘要</div></div><div class="switch on" id="swMemory" onclick="toggleSwitch('swMemory')"></div></div>
+        <div class="switch-row"><div><div class="lbl">💬 自动分段</div><div class="sub">长回复自动拆多条发QQ</div></div><div class="switch on" id="swSplit" onclick="toggleSwitch('swSplit')"></div></div>
+        <div class="switch-row"><div><div class="lbl">👥 回复群聊</div></div><div class="switch on" id="swGroup" onclick="toggleSwitch('swGroup')"></div></div>
+        <div class="switch-row"><div><div class="lbl">✉️ 回复私聊</div></div><div class="switch on" id="swPvt" onclick="toggleSwitch('swPvt')"></div></div>
+      </div>
+      <div class="field"><label>上下文窗口（轮）</label><input class="input" id="winSize" type="number" value="15" min="5" max="100"></div>
+    </div>
+    <div class="card">
+      <h3>保活设置</h3>
+      <div class="muted">✅ 屏幕常亮锁（防止浏览器休眠断连）</div>
+      <div class="muted">✅ 30秒WebSocket主动Ping（防止后台被掐）</div>
+      <div class="muted">✅ 断线自动指数退避重连</div>
+      <div class="muted">✅ 切回前台自动检测重连</div>
+      <div class="muted">✅ Token自动续期（提前5分钟刷新）</div>
+      <div class="muted">✅ 桌面通知权限（让浏览器认为页面活跃）</div>
+    </div>
+    <button class="btn block" onclick="saveConfig()" type="button">💾 保存配置</button>
+    <button class="btn danger block" onclick="clearAllData()" type="button" style="margin-top:8px">🗑️ 清空所有数据</button>
+  </div>
+</div>
+
+<!-- 会话页 -->
+<div class="page" id="page-sessions">
+  <div class="header"><h1>💬 会话</h1></div>
+  <div class="content" id="sessList" style="padding-bottom:70px">
+    <div class="muted" style="text-align:center;padding:40px">暂无会话，发一条消息就有了</div>
+  </div>
+</div>
+
+<!-- 会话详情页 -->
+<div class="page" id="page-detail">
+  <div class="header"><button class="back-btn" onclick="backFromDetail()" type="button">← 返回</button><h1 id="detTitle">会话详情</h1><button class="back-btn" onclick="refreshDetail()" type="button">🔄刷新</button></div>
+  <div class="content" style="padding-bottom:70px" id="detBody"></div>
+</div>
+
+<!-- 日志页 -->
+<div class="page" id="page-log">
+  <div class="header"><h1>📋 日志</h1><button class="back-btn" onclick="clearLog()" type="button">清空</button></div>
+  <div class="content" style="padding-bottom:70px"><div class="log" id="logBox"></div></div>
+</div>
+
+<!-- 底部导航 -->
+<div class="nav">
+  <button class="nav-btn active" data-page="status" onclick="switchTab('status')" type="button"><span class="ic">🏠</span>状态</button>
+  <button class="nav-btn" data-page="settings" onclick="switchTab('settings')" type="button"><span class="ic">⚙️</span>设置</button>
+  <button class="nav-btn" data-page="sessions" onclick="switchTab('sessions')" type="button"><span class="ic">💬</span>会话<span class="badge" id="unreadBadge" style="display:none">0</span></button>
+  <button class="nav-btn" data-page="log" onclick="switchTab('log')" type="button"><span class="ic">📋</span>日志</button>
+</div>
+
+<script>
+/* =============== 工具函数 =============== */
+const $=id=>document.getElementById(id);
+let toastTimer;
+function toast(msg){
+  const old=document.querySelector('.toast');
+  if(old)old.remove();
+  const t=document.createElement('div');
+  t.className='toast';t.textContent=msg;document.body.appendChild(t);
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.remove(),2500);
+}
+function log(msg,type=''){
+  const box=$('logBox');const t=new Date();
+  const ts=`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
+  const line=document.createElement('div');
+  line.className='l-'+type;
+  line.textContent=`[${ts}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop=box.scrollHeight;
+  while(box.children.length>500)box.removeChild(box.firstChild);
+}
+function switchTab(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===name));
+  if(name==='sessions')renderSessions();
+  if(name==='detail'&&_curDetailCid)refreshDetail();
+}
+function toggleSwitch(id){const el=$(id);el.classList.toggle('on');}
+function switchOn(id){$(id).classList.add('on');}
+function switchOff(id){$(id).classList.remove('on');}
+function switchIs(id){return $(id).classList.contains('on');}
+
+/* =============== 配置持久化 - 默认只有免费站，其他空出来让用户自己加 =============== */
+const DEFAULT_CFG={
+  appId:'',appSecret:'',
+  curProvider:'free',
+  providers:{
+    free:{name:'🆓 免费公益站',type:'free',base:'https://free-api.cnmwx.com/v1/completions',key:'',model:'free-model'}
+  },
+  sysPrompt:'你是一个友善可爱的AI助手，回复简洁自然，不啰嗦。',
+  injectTime:true, memory:true, splitReply:true, groupReply:true, pvtReply:true,
+  windowSize:15, sandbox:true
+};
+let CFG=loadCfg();
+function loadCfg(){
+  try{
+    const s=localStorage.getItem('qqbot_cfg');
+    if(s){
+      const c=JSON.parse(s);
+      // 确保免费站始终存在
+      const merged=Object.assign({},DEFAULT_CFG,c);
+      merged.providers=Object.assign({},DEFAULT_CFG.providers,c.providers||{});
+      // 确保当前选中的供应商存在
+      if(!merged.providers[merged.curProvider])merged.curProvider='free';
+      return merged;
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_CFG));
+}
+function saveCfg(){localStorage.setItem('qqbot_cfg',JSON.stringify(CFG));}
+let _editingPid=null;
+
+/* =============== 长期记忆 IndexedDB =============== */
+let DB=null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    if(DB)return res(DB);
+    const r=indexedDB.open('QQBotDB',1);
+    r.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('msgs')){const s=d.createObjectStore('msgs',{keyPath:'id',autoIncrement:true});s.createIndex('cid','cid');s.createIndex('ts','ts');}
+      if(!d.objectStoreNames.contains('mem')){const s=d.createObjectStore('mem',{keyPath:'id',autoIncrement:true});s.createIndex('cid','cid');s.createIndex('imp','imp');}
+      if(!d.objectStoreNames.contains('sess'))d.createObjectStore('sess',{keyPath:'cid'});
+    };
+    r.onsuccess=e=>{DB=e.target.result;res(DB);};
+    r.onerror=e=>rej(e.target.error);
+  });
+}
+async function dbAdd(store,obj){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readwrite');const req=t.objectStore(store).add(obj);t.oncomplete=()=>res(req.result);t.onerror=e=>rej(e.target.error);});}
+async function dbPut(store,obj){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readwrite');t.objectStore(store).put(obj);t.oncomplete=()=>res();t.onerror=e=>rej(e.target.error);});}
+async function dbGetAll(store,index,value){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readonly');const s=t.objectStore(store);const r=index?s.index(index).getAll(value):s.getAll();r.onsuccess=()=>res(r.result);r.onerror=e=>rej(e.target.error);});}
+async function dbClear(store){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readwrite');t.objectStore(store).clear();t.oncomplete=()=>res();t.onerror=e=>rej(e.target.error);});}
+async function dbDel(store,id){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readwrite');t.objectStore(store).delete(id);t.oncomplete=()=>res();t.onerror=e=>rej(e.target.error);});}
+
+/* =============== QQ Bot 核心 =============== */
+const PROXIES=[
+  u=>`https://proxy.cors.sh/${u}`,
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`
+];
+let accessToken='',tokenExpireAt=0,ws=null,heartbeatTimer=null,pingTimer=null,reconnectTimer=null,botInfo={},running=false,msgCount=0,startTime=0;
+let wakeLock=null,reconnectDelay=1000,wsAlive=true;
+
+async function qqFetch(path,opts={},tryProxy=true){
+  const url=`https://api.sgroup.qq.com${path}`;
+  const hdrs=Object.assign({'Authorization':`QQBot ${accessToken}`,'Content-Type':'application/json'},opts.headers||{});
+  try{
+    const r=await fetch(url,Object.assign({},opts,{headers:hdrs,mode:'cors'}));
+    if(r.ok||r.status<500)return r;
+    log(`直连${path}返回${r.status}，换代理`,'warn');
+  }catch(e){log(`直连${path}失败:${e.message}`,'warn');}
+  if(!tryProxy)throw new Error('直连失败且不使用代理');
+  for(const mk of PROXIES){
+    try{
+      const pu=mk(url);
+      const r=await fetch(pu,Object.assign({},opts,{headers:hdrs,mode:'cors'}));
+      if(r.ok)return r;
+      log(`代理返回${r.status}`,'warn');
+    }catch(e){log(`代理失败:${e.message}`,'warn');}
+  }
+  throw new Error('所有代理均失败');
+}
+async function fetchNewToken(){
+  if($('manualToken').value.trim()){
+    accessToken=$('manualToken').value.trim();
+    tokenExpireAt=Date.now()+7000*1000;
+    log('✅ 使用手动输入的Token','ok');
+    updateTokenUI();return;
+  }
+  if(!CFG.appId||!CFG.appSecret)throw new Error('请先在设置填写AppID和AppSecret');
+  const body=JSON.stringify({appId:CFG.appId,clientSecret:CFG.appSecret});
+  const url='https://bots.qq.com/app/getAppAccessToken';
+  try{
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body});
+    if(r.ok){const d=await r.json();accessToken=d.access_token;tokenExpireAt=Date.now()+(d.expires_in-300)*1000;log('✅ Token获取(直连)','ok');updateTokenUI();return;}
+  }catch(e){log(`直连token失败:${e.message}`,'warn');}
+  for(const mk of PROXIES){
+    try{
+      const r=await fetch(mk(url),{method:'POST',headers:{'Content-Type':'application/json'},body});
+      if(r.ok){
+        const txt=await r.text();
+        let j;try{j=JSON.parse(txt);}catch{
+          const m=txt.match(/\{[\s\S]*\}/);if(m)j=JSON.parse(m[0]);else throw new Error('响应非JSON');
+        }
+        if(j.access_token){accessToken=j.access_token;tokenExpireAt=Date.now()+(j.expires_in||7200-300)*1000;log(`✅ Token获取成功`,'ok');updateTokenUI();return;}
+      }
+    }catch(e){log(`代理token失败:${e.message}`,'warn');}
+  }
+  throw new Error('无法获取Token，请手动粘贴Token或检查AppID/Secret');
+}
+function updateTokenUI(){
+  if(!accessToken){$('tokenExpire').textContent='尚未获取';return;}
+  const s=Math.max(0,Math.floor((tokenExpireAt-Date.now())/1000));
+  const m=Math.floor(s/60);
+  $('tokenExpire').textContent=`有效中，剩余约 ${m} 分 ${s%60} 秒`;
+  if(s<300&&running)fetchNewToken().catch(e=>log('Token刷新失败:'+e.message,'err'));
+}
+function startHeartbeat(interval){
+  stopHeartbeat();
+  heartbeatTimer=setInterval(()=>{
+    if(ws&&ws.readyState===1){
+      ws.send(JSON.stringify({op:1,d:null}));
+      wsAlive=false;
+      setTimeout(()=>{if(!wsAlive&&running){log('⚠️ 心跳超时，主动重连','warn');try{ws.close();}catch(e){}}},5000);
+    }
+  },interval);
+  // 额外30s应用层ping，防止后台被掐
+  pingTimer=setInterval(()=>{
+    if(ws&&ws.readyState===1){
+      try{ws.send(JSON.stringify({op:1,d:null}));}catch(e){}
+    }
+  },30000);
+}
+function stopHeartbeat(){
+  if(heartbeatTimer){clearInterval(heartbeatTimer);heartbeatTimer=null;}
+  if(pingTimer){clearInterval(pingTimer);pingTimer=null;}
+}
+function connectWS(){
+  return new Promise((resolve,reject)=>{
+    try{ws=new WebSocket('wss://api.sgroup.qq.com/websocket');}catch(e){return reject(e);}
+    let resolved=false;
+    ws.onopen=()=>log('🔌 WS连接成功，等待Hello','info');
+    ws.onmessage=async ev=>{
+      wsAlive=true;
+      try{
+        const p=JSON.parse(ev.data);
+        if(p.op===10){
+          log(`📥 Hello, 心跳${p.d.heartbeat_interval}ms`,'info');
+          startHeartbeat(p.d.heartbeat_interval);
+          const intents=CFG.sandbox?1<<25|1<<30:1<<25|1<<1|1<<0;
+          ws.send(JSON.stringify({op:2,d:{token:`QQBot ${accessToken}`,intents,shard:[0,1],properties:{$os:'web',$browser:'qqbot-web',$device:'browser'}}}));
+        }else if(p.op===0){
+          handleDispatch(p);
+          if(p.t==='READY'&&!resolved){
+            botInfo=p.d.user||{};resolved=true;
+            log(`🎉 鉴权成功！机器人: ${botInfo.username||'?'} (${botInfo.id||''})`,'ok');resolve();
+          }
+        }else if(p.op===11){wsAlive=true;}
+        else if(p.op===9){log('⚠️ Session失效，重连','warn');setTimeout(reconnect,1500);}
+        else if(p.op===7){log('⚠️ 服务器要求重连','warn');setTimeout(reconnect,1000);}
+      }catch(e){log('消息解析错:'+e.message,'err');}
+    };
+    ws.onerror=e=>{log('WS错误(可能是网络，尝试重连)','warn');if(!resolved)reject(e);};
+    ws.onclose=()=>{
+      stopHeartbeat();
+      log('🔌 WS断开','warn');
+      if(running){
+        reconnectDelay=Math.min(reconnectDelay*2,30000);
+        log(`⏱ ${reconnectDelay/1000}s后重连`,'info');
+        reconnectTimer=setTimeout(reconnect,reconnectDelay);
+      }
+      if(!resolved)reject(new Error('WS关闭'));
+    };
+    setTimeout(()=>{if(!resolved)reject(new Error('鉴权超时（30秒）'));},30000);
+  });
+}
+async function reconnect(){
+  clearTimeout(reconnectTimer);
+  if(!running)return;
+  try{await startBot(true);reconnectDelay=1000;}
+  catch(e){log('重连失败:'+e.message,'err');reconnectDelay=Math.min(reconnectDelay*2,30000);reconnectTimer=setTimeout(reconnect,reconnectDelay);}
+}
+async function startBot(isReconnect=false){
+  try{
+    setBtnLoading('btnToggle',true,'🚀 启动中...');
+    log(isReconnect?'🔄 重连中...':'🚀 启动机器人...');
+    setStatus('connecting','连接中...');
+    if(!isReconnect)await fetchNewToken();
+    else if(Date.now()>tokenExpireAt-60000)await fetchNewToken();
+    await connectWS();
+    setStatus('on',`已连接: ${botInfo.username||'?'}`);
+    startTime=Date.now();
+    $('botName').textContent=botInfo.username||'-';
+    $('connTime').textContent=new Date().toLocaleString();
+    setBtnLoading('btnToggle',false,'⏹ 停止机器人');
+    $('btnToggle').classList.remove('btn');$('btnToggle').classList.add('btn','danger');
+    if(!isReconnect)toast('机器人已上线 ✅');
+    // WakeLock
+    try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');log('🔒 屏幕常亮锁已获取','ok');}}catch(e){log('屏幕锁不可用:'+e.message,'warn');}
+    // 请求通知权限（可提升后台存活率）
+    try{if('Notification' in window&&Notification.permission==='default'){Notification.requestPermission().then(p=>{if(p==='granted')log('🔔 通知权限已授权（有助于后台保活）','ok');});}}catch(e){}
+  }catch(e){
+    log('启动失败: '+e.message,'err');
+    setStatus('err','启动失败: '+e.message);
+    setBtnLoading('btnToggle',false,'🚀 启动机器人');
+    $('btnToggle').classList.remove('danger');
+    toast('启动失败，看日志');
+    throw e;
+  }
+}
+function stopBot(){
+  running=false;
+  clearTimeout(reconnectTimer);stopHeartbeat();
+  if(ws){try{ws.close();}catch(e){}ws=null;}
+  if(wakeLock){try{wakeLock.release();}catch(e){}wakeLock=null;}
+  setStatus('off','已停止');
+  setBtnLoading('btnToggle',false,'🚀 启动机器人');
+  $('btnToggle').classList.remove('danger');
+  log('⏹ 机器人已停止');toast('已停止');
+}
+function setStatus(st,txt){
+  $('statusText').textContent=txt;
+  $('dot').classList.toggle('on',st==='on');
+}
+function setBtnLoading(id,loading,txt){
+  const b=$(id);
+  b.disabled=!!loading;
+  if(loading){b.innerHTML='<span class="spin"></span> '+txt;}
+  else{b.textContent=txt;}
+}
+async function toggleBot(){
+  if(running){stopBot();}else{running=true;try{await startBot();}catch(e){running=false;}}
+}
+
+/* =============== 事件分发 =============== */
+async function handleDispatch(p){
+  const t=p.t,d=p.d;
+  let cid=null,userId=null,userName='',groupId='',guildId='',channelId='',content='',msgId='',eventType='';
+  if(t==='GROUP_AT_MESSAGE_CREATE'){
+    if(!CFG.groupReply)return;
+    eventType='group';groupId=d.group_id;cid='g:'+groupId;userId=d.author.member_openid;userName=d.author.author_openid?d.author.author_openid.slice(-6):'群友';
+    content=d.content||'';msgId=d.id;
+  }else if(t==='C2C_MESSAGE_CREATE'){
+    if(!CFG.pvtReply)return;
+    eventType='c2c';userId=d.author.user_openid;cid='c:'+userId;userName=d.author.username||'私聊';content=d.content||'';msgId=d.id;
+  }else if(t==='AT_MESSAGE_CREATE'){
+    eventType='guild';guildId=d.guild_id;channelId=d.channel_id;cid='ch:'+channelId;userId=d.author.id;userName=d.author.username||'';content=d.content||'';msgId=d.id;
+  }else if(t==='MESSAGE_CREATE'){
+    if(!CFG.pvtReply&&!d.guild_id)return;
+    eventType='guild_msg';guildId=d.guild_id;channelId=d.channel_id;cid='ch:'+channelId;userId=d.author?.id;userName=d.author?.username||'';content=d.content||'';msgId=d.id;
+  }else return;
+  content=content.replace(/<@!?(?:\d+)>/g,'').trim();
+  if(!content)return;
+  if(d.author&&d.author.username===botInfo.username)return;
+  log(`📨 [${eventType}] ${userName}: ${content.slice(0,40)}`,'info');
+  msgCount++;$('msgCount').textContent=msgCount;
+  // 保存会话
+  await saveSession(cid,eventType,userName,groupId||userId||channelId,content);
+  await dbAdd('msgs',{cid,role:'user',content,name:userName,ts:Date.now()});
+  // 实时追加到详情页（如果当前正在看这个会话）
+  if(_curDetailCid===cid)appendMsgToDetail('user',content,userName);
+  // 生成回复
+  let reply='';
+  try{
+    setStatus('on','回复中...');
+    reply=await generateReply(cid,content,userName);
+    await dbAdd('msgs',{cid,role:'assistant',content:reply,ts:Date.now()});
+    if(_curDetailCid===cid)appendMsgToDetail('assistant',reply);
+    await sendQQReply(eventType,{groupId,userId,guildId,channelId,msgId},reply);
+    if(CFG.memory){tryAutoSummarize(cid);}
+    setStatus('on',`已连接: ${botInfo.username||'?'}`);
+    // 发通知（切后台时）
+    try{if('Notification' in window&&Notification.permission==='granted'&&document.visibilityState!=='visible'){new Notification('QQBot AI 新回复',{body:reply.slice(0,60)});}}catch(e){}
+  }catch(e){
+    log('回复失败:'+e.message,'err');
+    try{await sendQQReply(eventType,{groupId,userId,guildId,channelId,msgId},'（出错了:'+e.message.slice(0,50)+'）');}catch(e2){}
+    setStatus('on',`已连接: ${botInfo.username||'?'}`);
+  }
+}
+async function saveSession(cid,type,name,targetId,lastMsg){
+  try{const d=await openDB();await new Promise((res)=>{const t=d.transaction('sess','readwrite');const s=t.objectStore('sess');s.put({cid,type,name,targetId,lastMsg,ts:Date.now(),unread:0});t.oncomplete=res;});}catch(e){}
+}
+async function sendQQReply(type,ids,text){
+  const{groupId,userId,guildId,channelId,msgId}=ids;
+  let path='',body={content:text,msg_id:msgId};
+  if(type==='group')path=`/v2/groups/${groupId}/messages`;
+  else if(type==='c2c')path=`/v2/users/${userId}/messages`;
+  else path=`/channels/${channelId}/messages`;
+  const parts=CFG.splitReply?splitMsg(text):[text];
+  for(let i=0;i<parts.length;i++){
+    const bd=Object.assign({},body,{content:parts[i]});
+    let lastErr=null;
+    for(let attempt=0;attempt<3;attempt++){
+      try{
+        const r=await qqFetch(path,{method:'POST',body:JSON.stringify(bd)});
+        if(r.ok){log(`📤 已发送(${i+1}/${parts.length})`,'ok');break;}
+        const t=await r.text();log(`发消息返回${r.status}:${t.slice(0,200)}`,'err');
+        if(r.status===401||t.includes('11242')){await fetchNewToken();continue;}
+        lastErr=new Error(`HTTP${r.status}`);break;
+      }catch(e){lastErr=e;log(`发送失败重试${attempt+1}:${e.message}`,'warn');await new Promise(r=>setTimeout(r,1000));}
+    }
+    if(lastErr&&parts.length>1)log(`分段${i+1}放弃`,'err');
+    await new Promise(r=>setTimeout(r,300));
+  }
+}
+function splitMsg(text,max=1500){
+  if(text.length<=max)return[text];
+  const parts=[];
+  for(let i=0;i<text.length;i+=max){parts.push(text.slice(i,i+max));}
+  return parts;
+}
+
+/* =============== AI 调用 =============== */
+function filterOutput(text){
+  if(!text)return'';
+  text=text.replace(/<think[\s\S]*?<\/think>/gi,'');
+  text=text.replace(/<[^>]+>/g,'');
+  text=text.replace(/欢迎使用\s*公益站[!！]?\s*站长合作邮箱：?\s*wxgpt@qq\.com/gi,'');
+  text=text.replace(/公益站/gi,'');
+  text=text.replace(/站长合作邮箱[^\n]*/gi,'');
+  text=text.replace(/wxgpt@qq\.com/gi,'');
+  text=text.replace(/^[\s\n]+|[\s\n]+$/g,'');
+  return text;
+}
+async function buildMessages(cid,query){
+  const msgs=[];
+  let sys=CFG.sysPrompt||'';
+  if(CFG.injectTime){
+    const now=new Date();
+    const wd=['日','一','二','三','四','五','六'][now.getDay()];
+    sys+=`\n\n【系统信息】当前时间：${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${wd} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (UTC+8北京时间)。涉及日期、星期、今天、明天、倒计时、节日、时间段的问题，请严格以该时间为准，不要自己猜测。`;
+  }
+  if(CFG.memory){
+    try{
+      const mems=await dbGetAll('mem','cid',cid);
+      if(mems.length){
+        const sorted=mems.sort((a,b)=>(b.imp||0)-(a.imp||0)).slice(0,20);
+        sys+=`\n\n【长期记忆（关于这个会话的关键信息）】\n${sorted.map((m,i)=>`${i+1}. ${m.content}`).join('\n')}\n（以上是历史总结，自然融入回复即可，不要生硬复述）`;
+      }
+    }catch(e){}
+  }
+  const supportsSystem=true;
+  if(supportsSystem)msgs.push({role:'system',content:sys});
+  try{
+    const all=await dbGetAll('msgs','cid',cid);
+    // 严格按滑窗大小：只取最近 windowSize 条原文
+    const recent=all.sort((a,b)=>a.ts-b.ts).slice(-CFG.windowSize);
+    for(const m of recent)msgs.push({role:m.role,content:m.content});
+  }catch(e){log('加载历史失败:'+e.message,'warn');}
+  msgs.push({role:'user',content:query});
+  return msgs;
+}
+async function callFreeAPI(promptText){
+  const base=CFG.providers[CFG.curProvider].base||'https://free-api.cnmwx.com/v1/completions';
+  const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:promptText})});
+  if(!r.ok)throw new Error(`免费站HTTP${r.status}`);
+  const t=await r.text();
+  return filterOutput(t);
+}
+async function callOpenAI(messages){
+  const p=CFG.providers[CFG.curProvider];
+  const base=p.base.replace(/\/+$/,'');
+  const url=base+'/chat/completions';
+  const hdrs={'Content-Type':'application/json'};
+  if(p.key)hdrs['Authorization']='Bearer '+p.key;
+  const body={model:p.model||'gpt-4o-mini',messages,temperature:0.7,stream:false};
+  const r=await fetch(url,{method:'POST',headers:hdrs,body:JSON.stringify(body)});
+  if(!r.ok){const t=await r.text();throw new Error(`AI ${r.status}:${t.slice(0,200)}`);}
+  const j=await r.json();
+  let content='';
+  if(j.choices&&j.choices[0]){
+    const m=j.choices[0].message||{};
+    content=m.content||'';
+    if(m.reasoning_content)log('🧠 思考过程已过滤','info');
+  }
+  return filterOutput(content);
+}
+async function generateReply(cid,query,name){
+  const p=CFG.providers[CFG.curProvider];
+  if(!p)throw new Error('请先选择一个AI供应商');
+  if(p.type==='free'){
+    const msgs=await buildMessages(cid,query);
+    let txt='';
+    for(const m of msgs){txt+=`${m.role==='system'?'系统':m.role==='assistant'?'助手':'用户'}: ${m.content}\n`;}
+    txt+='助手:';
+    return await callFreeAPI(txt);
+  }else{
+    const msgs=await buildMessages(cid,query);
+    return await callOpenAI(msgs);
+  }
+}
+
+/* =============== 长期记忆（自动摘要） =============== */
+let lastSummarizeTime={};
+async function tryAutoSummarize(cid){
+  try{
+    const now=Date.now();
+    if(lastSummarizeTime[cid]&&now-lastSummarizeTime[cid]<15000)return;
+    const all=await dbGetAll('msgs','cid',cid);
+    if(all.length<CFG.windowSize+4)return;
+    lastSummarizeTime[cid]=now;
+    const sorted=all.sort((a,b)=>a.ts-b.ts);
+    const oldMsgs=sorted.slice(0,sorted.length-CFG.windowSize);
+    if(oldMsgs.length<2)return;
+    log(`🧠 自动总结 ${oldMsgs.length} 条旧消息`,'info');
+    const text=oldMsgs.map(m=>`${m.role==='user'?'用户':m.role==='assistant'?'助手':'?'}: ${m.content}`).join('\n');
+    const prompt=`你是一个对话记忆抽取器，请从下面这段历史对话中提取关键信息，输出2~6条精炼的事实陈述句（中文）。
+要求：
+1. 只输出事实句，不解释、不写"用户说..."这类前缀，不要序号
+2. 重点提取：身份信息、用户偏好/习惯、关键事件、待办约定、项目进展、AI人设要求
+3. 每条不超过40字，一行一条
+4. 若信息矛盾，取最新说法
+5. 信息不足只输出"无关键信息"
+6. 最后一行输出：KW:关键词1,关键词2（不超过5个）
+
+对话：
+${text}`;
+    let sum='';
+    try{
+      const cp=CFG.providers[CFG.curProvider];
+      if(cp.type==='free'){sum=await callFreeAPI(prompt);}
+      else{sum=await callOpenAI([{role:'system',content:'你是精确的对话事实抽取器，严格按要求输出。'},{role:'user',content:prompt}]);}
+    }catch(e){
+      log('AI摘要失败，用启发式兜底','warn');
+      const facts=[];
+      const big=oldMsgs.filter(m=>m.role==='user').map(m=>m.content).join(' ');
+      const pats=[
+        [/我(?:名字|叫|是)\s*([^\s,，。!！?？]{2,10})/g,v=>`用户名叫${v}`],
+        [/(?:记住|记得).*?(?:我|咱)([^，。!]{2,30})/g,v=>`记住：${v}`],
+        [/我(?:喜欢|爱|偏好|讨厌|反感|不喜欢)([^，。!]{2,30})/g,v=>`用户偏好：${v}`],
+        [/我(?:在|住在|来自|是)([^，。!]{2,15})(?:人|的|工作|上学)/g,v=>`用户所在地/身份：${v}`],
+      ];
+      for(const[pat,fn]of pats){
+        const r=new RegExp(pat.source,pat.flags);
+        let m;while((m=r.exec(big))&&facts.length<6)facts.push(fn(m[1]));
+      }
+      sum=facts.join('\n')||'无关键信息';
+    }
+    sum=filterOutput(sum);
+    const lines=sum.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('KW:')&&l!=='无关键信息').slice(0,8);
+    for(const line of lines){await dbAdd('mem',{cid,content:line,ts:Date.now(),imp:3,type:'auto'});}
+    const d=await openDB();
+    await new Promise((res)=>{
+      const t=d.transaction('msgs','readwrite');const s=t.objectStore('msgs');
+      for(const m of oldMsgs){if(!m.content.toLowerCase().includes('记住')&&!m.content.includes('我叫'))s.delete(m.id);}
+      t.oncomplete=res;
+    });
+    log(`✅ 摘要完成，入库${lines.length}条`,'ok');
+    if(_curDetailCid===cid)refreshDetail();
+  }catch(e){log('摘要流程异常:'+e.message,'err');}
+}
+/* 手动总结：不需要选中会话，一键总结所有会话的旧消息 */
+async function manualSummarizeAll(){
+  toast('AI手动总结中...');
+  log('✨ 手动总结开始（所有会话）','info');
+  let totalMem=0,totalSess=0;
+  try{
+    const sessions=await dbGetAll('sess');
+    for(const sess of sessions){
+      const cid=sess.cid;
+      const all=await dbGetAll('msgs','cid',cid);
+      if(all.length<4)continue;
+      const sorted=all.sort((a,b)=>a.ts-b.ts).slice(-100);
+      const text=sorted.map(m=>`${m.role==='user'?'用户':'助手'}: ${m.content}`).join('\n');
+      const prompt=`请从下面这段对话中提取重要信息，输出3~8条精炼事实陈述句，一行一条，每条不超过50字，重点：身份/偏好/事件/约定/关键问答结论。最后一行输出 KW: 关键词。\n\n${text}`;
+      try{
+        const cp=CFG.providers[CFG.curProvider];
+        let sum='';
+        if(cp.type==='free')sum=await callFreeAPI(prompt);
+        else sum=await callOpenAI([{role:'system',content:'你是严谨的对话事实归档助手'},{role:'user',content:prompt}]);
+        sum=filterOutput(sum);
+        const lines=sum.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('KW:')).slice(0,10);
+        for(const line of lines)await dbAdd('mem',{cid,content:line,ts:Date.now(),imp:4,type:'manual'});
+        if(lines.length){totalMem+=lines.length;totalSess++;log(`  ✓ ${sess.name||cid} 入库${lines.length}条`,'ok');}
+      }catch(e){log(`  ✗ ${sess.name||cid} 总结失败:${e.message}`,'warn');}
+    }
+    toast(`✅ 总结${totalSess}个会话，入库${totalMem}条记忆`);
+    log(`✨ 手动总结完成：${totalSess}个会话，${totalMem}条记忆`,'ok');
+    if($('page-sessions').classList.contains('active'))renderSessions();
+    if(_curDetailCid&&$('page-detail').classList.contains('active'))refreshDetail();
+  }catch(e){toast('总结失败:'+e.message);log('手动总结失败:'+e.message,'err');}
+}
+/* 手动总结当前单个会话 */
+async function manualSummarizeOne(cid){
+  if(!cid){toast('请先进入一个会话');return;}
+  toast('AI总结本会话中...');
+  try{
+    const all=await dbGetAll('msgs','cid',cid);
+    if(all.length<4){toast('消息太少');return;}
+    const sorted=all.sort((a,b)=>a.ts-b.ts).slice(-100);
+    const text=sorted.map(m=>`${m.role==='user'?'用户':'助手'}: ${m.content}`).join('\n');
+    const prompt=`请从下面这段对话中提取重要信息，输出3~8条精炼事实陈述句，一行一条，每条不超过50字，重点：身份/偏好/事件/约定/关键问答结论。最后一行输出 KW: 关键词。\n\n${text}`;
+    const cp=CFG.providers[CFG.curProvider];
+    let sum='';
+    if(cp.type==='free')sum=await callFreeAPI(prompt);
+    else sum=await callOpenAI([{role:'system',content:'你是严谨的对话事实归档助手'},{role:'user',content:prompt}]);
+    sum=filterOutput(sum);
+    const lines=sum.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('KW:')).slice(0,10);
+    for(const line of lines)await dbAdd('mem',{cid,content:line,ts:Date.now(),imp:4,type:'manual'});
+    toast(`✅ 入库${lines.length}条记忆`);
+    log(`✨ 手动总结完成，入库${lines.length}条`,'ok');
+    refreshDetail();
+  }catch(e){toast('总结失败:'+e.message);log('手动摘要失败:'+e.message,'err');}
+}
+
+/* =============== UI 渲染 =============== */
+function renderProviders(){
+  const box=$('provList');box.innerHTML='';
+  const ids=Object.keys(CFG.providers);
+  for(const id of ids){
+    const p=CFG.providers[id];
+    const isCur=(CFG.curProvider===id);
+    const el=document.createElement('div');
+    el.className='provider-item'+(isCur?' active':'');
+    const typeLabel=p.type==='free'?'🆓免费':'🔷OpenAI兼容';
+    el.innerHTML=`
+      <div style="flex:1;min-width:0">
+        <input class="input" value="${escapeAttr(p.name)}" data-f="name" data-pid="${id}" placeholder="供应商名称" style="min-height:36px;margin-bottom:4px" onchange="updateProviderField(this)">
+        <div class="pmeta">${typeLabel} · ${p.base?p.base.replace(/^https?:\/\//,'').slice(0,30):'未填URL'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="psel" onclick="selectProvider('${id}')" type="button">${isCur?'✅ 使用中':'选中'}</button>
+        ${id==='free'?'':`<button class="pdel" onclick="deleteProvider('${id}')" type="button">🗑️</button>`}
+      </div>
+      <div style="width:100%;grid-column:1/-1;display:${isCur?'block':'none'}" class="p-edit" data-pid="${id}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+          <select class="select" data-f="type" data-pid="${id}" onchange="updateProviderField(this)" style="min-height:36px">
+            <option value="free"${p.type==='free'?' selected':''}>🆓 免费公益站</option>
+            <option value="openai"${p.type==='openai'?' selected':''}>🔷 OpenAI兼容</option>
+          </select>
+          <input class="input" value="${escapeAttr(p.model||'')}" data-f="model" data-pid="${id}" placeholder="模型名" style="min-height:36px" onchange="updateProviderField(this)">
+        </div>
+        <input class="input" value="${escapeAttr(p.base||'')}" data-f="base" data-pid="${id}" placeholder="Base URL （如 https://api.deepseek.com/v1）" style="margin-top:6px;min-height:36px" onchange="updateProviderField(this)">
+        <input class="input" value="${escapeAttr(p.key||'')}" data-f="key" data-pid="${id}" placeholder="API Key（免费站留空）" type="password" style="margin-top:6px;min-height:36px" onchange="updateProviderField(this)">
+      </div>`;
+    box.appendChild(el);
+  }
+}
+function updateProviderField(inp){
+  const pid=inp.dataset.pid,f=inp.dataset.f;
+  if(!CFG.providers[pid])return;
+  CFG.providers[pid][f]=inp.value;
+  // 类型变化时刷新UI（展开编辑区状态）
+  renderProviders();
+}
+function selectProvider(id){
+  if(!CFG.providers[id])return;
+  CFG.curProvider=id;
+  saveCfg();
+  renderProviders();
+  toast('已切换到：'+CFG.providers[id].name);
+}
+function deleteProvider(id){
+  if(id==='free'){toast('免费站不能删除');return;}
+  if(!confirm('确定删除这个供应商？'))return;
+  delete CFG.providers[id];
+  if(CFG.curProvider===id)CFG.curProvider='free';
+  saveCfg();renderProviders();
+  toast('已删除');
+}
+function addProviderSlot(){
+  const id='custom_'+Date.now();
+  CFG.providers[id]={name:'自定义'+(Object.keys(CFG.providers).length),type:'openai',base:'',key:'',model:''};
+  CFG.curProvider=id;
+  saveCfg();renderProviders();
+  toast('已添加新供应商槽位，请填写URL/Key/模型');
+}
+function escapeAttr(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function loadForm(){
+  $('appId').value=CFG.appId||'';
+  $('appSecret').value=CFG.appSecret||'';
+  $('sysPrompt').value=CFG.sysPrompt;
+  $('winSize').value=CFG.windowSize;
+  CFG.sandbox?switchOn('swSandbox'):switchOff('swSandbox');
+  CFG.injectTime?switchOn('swTime'):switchOff('swTime');
+  CFG.memory?switchOn('swMemory'):switchOff('swMemory');
+  CFG.splitReply?switchOn('swSplit'):switchOff('swSplit');
+  CFG.groupReply?switchOn('swGroup'):switchOff('swGroup');
+  CFG.pvtReply?switchOn('swPvt'):switchOff('swPvt');
+  renderProviders();
+}
+function saveConfig(){
+  CFG.appId=$('appId').value.trim();
+  CFG.appSecret=$('appSecret').value.trim();
+  CFG.sysPrompt=$('sysPrompt').value||DEFAULT_CFG.sysPrompt;
+  CFG.windowSize=parseInt($('winSize').value)||15;
+  CFG.sandbox=switchIs('swSandbox');
+  CFG.injectTime=switchIs('swTime');
+  CFG.memory=switchIs('swMemory');
+  CFG.splitReply=switchIs('swSplit');
+  CFG.groupReply=switchIs('swGroup');
+  CFG.pvtReply=switchIs('swPvt');
+  saveCfg();
+  toast('✅ 配置已保存');
+  log('💾 配置已保存','ok');
+}
+async function clearAllData(){
+  if(!confirm('确定清空所有配置、会话、记忆？'))return;
+  localStorage.removeItem('qqbot_cfg');
+  try{await dbClear('msgs');await dbClear('mem');await dbClear('sess');}catch(e){}
+  CFG=JSON.parse(JSON.stringify(DEFAULT_CFG));
+  loadForm();toast('已清空');
+}
+async function renderSessions(){
+  const box=$('sessList');
+  try{
+    const list=await dbGetAll('sess');
+    // 顶部统计 + 手动总结按钮
+    let html=`<div class="card"><h3>📊 会话概览</h3>`;
+    html+=`<div class="det-grid" style="margin-bottom:8px">`;
+    html+=`<div class="stat"><div class="n">${list.length}</div><div class="l">会话数</div></div>`;
+    let totalMsg=0,totalMem=0;
+    for(const s of list){const m=await dbGetAll('msgs','cid',s.cid);totalMsg+=m.length;const mm=await dbGetAll('mem','cid',s.cid);totalMem+=mm.length;}
+    html+=`<div class="stat"><div class="n">${totalMsg}</div><div class="l">总消息</div></div>`;
+    html+=`<div class="stat"><div class="n">${totalMem}</div><div class="l">记忆条目</div></div>`;
+    html+=`</div>`;
+    html+=`<button class="btn block" onclick="manualSummarizeAll()" type="button" style="margin-top:6px">✨ AI手动总结所有会话</button>`;
+    html+=`</div>`;
+    if(!list.length){html+='<div class="muted" style="text-align:center;padding:40px">暂无会话，发一条消息就有了</div>';box.innerHTML=html;return;}
+    const sorted=list.sort((a,b)=>b.ts-a.ts);
+    for(const s of sorted){
+      const msgs=await dbGetAll('msgs','cid',s.cid);
+      const mems=await dbGetAll('mem','cid',s.cid);
+      const typeName={group:'群聊',c2c:'私聊',guild:'频道',guild_msg:'频道消息'}[s.type]||s.type;
+      const oldCount=Math.max(0,msgs.length-CFG.windowSize);
+      html+=`<div class="session-item" onclick="showSession('${s.cid}')">`;
+      html+=`<div class="ti"><span>${escapeHTML(s.name||'未知')}${oldCount>=4?`<span class="badge">${oldCount}待归档</span>`:''}</span><span class="tm">${new Date(s.ts).toLocaleString()}</span></div>`;
+      html+=`<div class="pr">${typeName} · ${msgs.length}条消息 · ${mems.length}条记忆</div>`;
+      html+=`<div class="pr">${escapeHTML((s.lastMsg||'').slice(0,60))}</div>`;
+      html+=`</div>`;
+    }
+    box.innerHTML=html;
+  }catch(e){box.innerHTML='<div class="muted">加载失败:'+e.message+'</div>';}
+}
+let _curDetailCid=null;
+async function showSession(cid){
+  _curDetailCid=cid;
+  switchTab('detail');
+  refreshDetail();
+}
+async function refreshDetail(){
+  if(!_curDetailCid)return;
+  const cid=_curDetailCid;
+  const box=$('detBody');
+  try{
+    const sessAll=await dbGetAll('sess');
+    const sess=sessAll.find(x=>x.cid===cid);
+    $('detTitle').textContent=sess?`${sess.name||''}`:'会话详情';
+    const msgs=(await dbGetAll('msgs','cid',cid)).sort((a,b)=>a.ts-b.ts);
+    const mems=(await dbGetAll('mem','cid',cid)).sort((a,b)=>b.ts-a.ts);
+    let html='<div class="det-grid">';
+    html+=`<div class="stat"><div class="n">${msgs.length}</div><div class="l">消息</div></div>`;
+    html+=`<div class="stat"><div class="n">${mems.length}</div><div class="l">记忆</div></div>`;
+    html+=`<div class="stat"><div class="n">${Math.max(0,msgs.length-CFG.windowSize)}</div><div class="l">待归档</div></div>`;
+    html+='</div>';
+    html+='<div class="btn-row3">';
+    html+='<button class="btn" onclick="manualSummarizeOne(\''+cid+'\')" type="button" style="padding:10px 8px;font-size:13px">✨ 总结本会话</button>';
+    html+='<button class="btn secondary" onclick="refreshDetail()" type="button" style="padding:10px 8px;font-size:13px">🔄 刷新</button>';
+    html+='<button class="btn danger" onclick="deleteSession()" type="button" style="padding:10px 8px;font-size:13px">🗑️ 删除</button>';
+    html+='</div>';
+    html+='<div class="card" style="margin-top:12px"><h3>💬 消息记录（共'+msgs.length+'条）</h3><div id="msgList" style="max-height:50vh;overflow-y:auto">';
+    const recent=msgs.slice(-200); // 显示最近200条，避免页面卡
+    for(const m of recent){
+      const cls=m.role==='user'?'msg-user':'msg-bot';
+      const who=m.role==='user'?(m.name||'用户'):(botInfo.username||'AI');
+      html+=`<div class="msg-meta">${escapeHTML(who)} · ${new Date(m.ts).toLocaleTimeString()}</div>`;
+      html+=`<div class="msg-bubble ${cls}">${escapeHTML(m.content)}</div>`;
+    }
+    html+='</div></div>';
+    html+='<div class="card"><h3>🧠 长期记忆（共'+mems.length+'条）</h3>';
+    if(!mems.length)html+='<div class="muted">暂无记忆</div>';
+    for(const m of mems.slice(0,50)){
+      html+=`<div class="mem-item">${escapeHTML(m.content)}<div class="mt">${new Date(m.ts).toLocaleString()} · ${m.type==='manual'?'手动':'自动'} · 重要度${m.imp||3}</div></div>`;
+    }
+    if(mems.length>50)html+=`<div class="muted" style="text-align:center;padding:8px">还有${mems.length-50}条更早记忆...</div>`;
+    html+='</div>';
+    box.innerHTML=html;
+    // 滚到底部
+    setTimeout(()=>{const ml=$('msgList');if(ml)ml.scrollTop=ml.scrollHeight;},100);
+  }catch(e){box.innerHTML='<div class="muted">加载失败:'+e.message+'</div>';}
+}
+/* 实时追加消息到详情页（不刷新全部，保证及时） */
+function appendMsgToDetail(role,content,name){
+  if(!_curDetailCid)return;
+  const ml=$('msgList');
+  if(!ml)return; // 详情页未打开
+  const cls=role==='user'?'msg-user':'msg-bot';
+  const who=role==='user'?(name||'用户'):(botInfo.username||'AI');
+  const meta=document.createElement('div');
+  meta.className='msg-meta';meta.textContent=`${who} · ${new Date().toLocaleTimeString()}`;
+  const bub=document.createElement('div');
+  bub.className=`msg-bubble ${cls}`;bub.textContent=content;
+  ml.appendChild(meta);ml.appendChild(bub);
+  ml.scrollTop=ml.scrollHeight;
+  // 超过200条自动移除最旧的DOM节点，防止页面卡顿
+  while(ml.children.length>400){ml.removeChild(ml.firstChild);}
+}
+function escapeHTML(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function backFromDetail(){switchTab('sessions');_curDetailCid=null;}
+async function deleteSession(){
+  if(!_curDetailCid)return;
+  if(!confirm('确定删除这个会话？'))return;
+  try{
+    const d=await openDB();
+    const msgs=await dbGetAll('msgs','cid',_curDetailCid);
+    const mems=await dbGetAll('mem','cid',_curDetailCid);
+    await new Promise((res)=>{const t=d.transaction(['msgs','mem','sess'],'readwrite');
+      msgs.forEach(m=>t.objectStore('msgs').delete(m.id));
+      mems.forEach(m=>t.objectStore('mem').delete(m.id));
+      t.objectStore('sess').delete(_curDetailCid);
+      t.oncomplete=res;});
+    toast('已删除');_curDetailCid=null;switchTab('sessions');
+  }catch(e){toast('删除失败:'+e.message);}
+}
+function clearLog(){$('logBox').innerHTML='';}
+
+/* =============== 测试/诊断 =============== */
+async function testAI(){
+  toast('测试中...');
+  try{
+    const p=CFG.providers[CFG.curProvider];
+    if(!p)throw new Error('请先选择供应商');
+    let reply='';
+    if(p.type==='free')reply=await callFreeAPI('你好，请用一句话打招呼');
+    else reply=await callOpenAI([{role:'user',content:'你好，用一句话打招呼'}]);
+    log(`🧪 AI测试回复: ${reply.slice(0,80)}`,'ok');
+    alert('✅ AI可用！回复:\n'+reply.slice(0,200));
+  }catch(e){alert('❌ AI测试失败:\n'+e.message);log('AI测试失败:'+e.message,'err');}
+}
+async function diag(){
+  log('========== 🔍 开始诊断 ==========','info');
+  log(`UA: ${navigator.userAgent.slice(0,80)}`,'info');
+  log(`协议: ${location.protocol}`,'info');
+  log(`IndexedDB: ${'indexedDB' in window?'✅可用':'❌不可用'}`,'info');
+  log(`WebSocket: ${'WebSocket' in window?'✅可用':'❌不可用'}`,'info');
+  log(`WakeLock: ${'wakeLock' in navigator?'✅可用':'❌不可用'}`,'info');
+  log(`通知: ${'Notification' in window?Notification.permission:'❌不支持'}`,'info');
+  try{
+    const p=CFG.providers[CFG.curProvider];
+    if(!p)throw new Error('未选择供应商');
+    log(`AI供应商: ${p.name} (${p.type})，base=${p.base}`,'info');
+    if(p.type==='free'){
+      const r=await fetch(p.base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:'hi'}),mode:'cors'});
+      log(`AI接口HTTP状态: ${r.status}`,'info');
+    }else{
+      const r=await fetch(p.base.replace(/\/+$/,'')+'/models',{headers:p.key?{'Authorization':'Bearer '+p.key}:{},mode:'cors'});
+      log(`AI接口HTTP状态: ${r.status}`,'info');
+    }
+    log('AI接口: ✅ 可达','ok');
+  }catch(e){log('AI接口: ❌ '+e.message,'err');}
+  if(CFG.appId&&CFG.appSecret){
+    const body=JSON.stringify({appId:CFG.appId,clientSecret:CFG.appSecret});
+    try{
+      const r=await fetch('https://bots.qq.com/app/getAppAccessToken',{method:'POST',headers:{'Content-Type':'application/json'},body,mode:'cors'});
+      log(`Token直连: HTTP ${r.status} ${r.ok?'✅可达':'❌被CORS拦截'}`,r.ok?'ok':'warn');
+    }catch(e){log('Token直连: ❌ 被CORS拦截 ('+e.message+')','warn');}
+    for(const mk of PROXIES){
+      try{
+        const u=mk('https://bots.qq.com/app/getAppAccessToken');
+        const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body,mode:'cors'});
+        log(`Token代理: HTTP ${r.status} ${r.ok?'✅可用':'⚠️异常'}`,r.ok?'ok':'warn');
+        if(r.ok)break;
+      }catch(e){log(`Token代理: ❌ ${e.message}`,'err');}
+    }
+  }else{log('Token: ⚠️ 未填AppID/Secret，跳过测试','warn');}
+  try{
+    await new Promise((res,rej)=>{
+      const w=new WebSocket('wss://api.sgroup.qq.com/websocket');
+      const tm=setTimeout(()=>{w.close();rej(new Error('3s超时'));},3000);
+      w.onopen=()=>{clearTimeout(tm);w.close();res();};
+      w.onerror=()=>{clearTimeout(tm);rej(new Error('连接错误'));};
+    });
+    log('WS网关: ✅ 可达','ok');
+  }catch(e){log('WS网关: ❌ '+e.message,'err');}
+  try{
+    const r=await fetch('https://api.sgroup.qq.com/gateway',{headers:{'Authorization':'QQBot test'},mode:'cors'});
+    log(`api.sgroup.qq.com 直连: HTTP ${r.status}（CORS头${r.headers.get('access-control-allow-origin')?'✅有':'❌无'}）`,r.headers.get('access-control-allow-origin')?'ok':'warn');
+  }catch(e){log('api.sgroup.qq.com 直连: ❌ 无CORS头，必须走代理','warn');}
+  log('========== 🔍 诊断结束 ==========','info');
+  switchTab('log');toast('诊断完成，看日志');
+}
+function useManualToken(){
+  const v=$('manualToken').value.trim();
+  if(!v){toast('请先粘贴Token');return;}
+  accessToken=v;tokenExpireAt=Date.now()+7000*1000;
+  log('✅ 手动Token已设置','ok');updateTokenUI();toast('Token已设置');
+}
+function refreshToken(){accessToken='';tokenExpireAt=0;fetchNewToken().catch(e=>{toast('失败:'+e.message);log('刷新Token失败:'+e.message,'err');});}
+
+/* =============== 初始化 =============== */
+async function init(){
+  try{await openDB();log('📦 IndexedDB初始化成功','ok');}catch(e){log('IndexedDB失败:'+e.message,'err');}
+  loadForm();
+  if(accessToken)updateTokenUI();
+  setInterval(updateTokenUI,5000);
+  // 会话列表2秒自动刷新（仅当会话页激活）
+  setInterval(()=>{if($('page-sessions').classList.contains('active'))renderSessions();},2000);
+  log('QQBot AI v10 已加载','ok');
+  if(!CFG.appId||!CFG.appSecret)log('⚠️ 请先到「设置」填写AppID和AppSecret','warn');
+  else log('👉 点「🚀启动机器人」开始，若失败请先点「🔍诊断」','info');
+  // 后台重获wakeLock + 切回前台检测重连
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+      log('👀 页面回到前台，检测连接...','info');
+      if(running&&!wakeLock){
+        navigator.wakeLock?.request('screen').then(l=>{wakeLock=l;log('🔒 屏幕锁恢复','ok');}).catch(()=>{});
+      }
+      if(running&&(!ws||ws.readyState!==1)){
+        log('⚠️ 发现WS已断开，立即重连','warn');
+        clearTimeout(reconnectTimer);reconnectTimer=setTimeout(reconnect,500);
+      }
+    }
+  });
+  // 页面关闭前提示
+  window.addEventListener('beforeunload',e=>{
+    if(running){e.preventDefault();e.returnValue='机器人正在运行，确定离开？';return e.returnValue;}
+  });
+}
+init();
+</script>
+</body>
+</html><!--16288915832573747210082319-->
