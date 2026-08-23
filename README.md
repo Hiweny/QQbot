@@ -37,7 +37,7 @@
 
 ### 2️⃣ 打开页面
 - 直接下载 `QQBot-Web.html` 用浏览器打开（推荐 Chrome / Edge）。
-- 或访问部署的在线地址（如有）。
+> 在线体验：[QQBot AI 纯前端机器人](https://hiweny.github.io/QQbot/)
 
 ### 3️⃣ 填写配置
 - 点击底部 **「⚙️ 设置」**：
