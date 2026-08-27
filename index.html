@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>QQBot AI - 纯前端机器人</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+:root{
+  --primary:#12B7F5;--primary-dark:#0E9AD1;--primary-light:rgba(18,183,245,.14);
+  --bg:#EDF1F7;--card:rgba(255,255,255,.72);--card-solid:#FFFFFF;
+  --text:#1A2030;--text2:#4E5768;--text3:#8B94A7;
+  --border:rgba(255,255,255,.65);--border2:rgba(26,32,48,.08);
+  --success:#00B42A;--danger:#F53F3F;--warning:#FF7D00;
+  --grad:linear-gradient(135deg,#0B79B8 0%,#0FA0E4 60%,#22ADE8 100%);
+  --blur:blur(18px) saturate(1.6);
+  --blur-nav:blur(24px) saturate(1.8);
+  --glass:rgba(255,255,255,.55);
+  --shadow:0 2px 8px rgba(26,32,48,.05),0 12px 32px rgba(26,32,48,.08);
+  --shadow-lg:0 8px 24px rgba(26,32,48,.10),0 24px 64px rgba(26,32,48,.14);
+  --safe:env(safe-area-inset-bottom,0px);
+  --radius:22px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0D1017;--card:rgba(30,34,44,.66);--card-solid:#1E222C;
+    --text:#F0F3F8;--text2:#C2C9D6;--text3:#7C8595;
+    --border:rgba(255,255,255,.10);--border2:rgba(255,255,255,.07);
+    --primary-light:rgba(18,183,245,.16);
+    --glass:rgba(32,37,49,.72);
+    --shadow:0 2px 8px rgba(0,0,0,.25),0 12px 32px rgba(0,0,0,.35);
+    --shadow-lg:0 8px 24px rgba(0,0,0,.35),0 24px 64px rgba(0,0,0,.45);
+  }
+}
+html,body{height:100%;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.55;overflow:hidden;-webkit-font-smoothing:antialiased;}
+/* ===== 全局动态背景层 ===== */
+#bgWrap{position:fixed;inset:0;z-index:-2;background:var(--bg);overflow:hidden;}
+#bgImg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.2s ease;}
+#bgImg.show{opacity:1;}
+#bgImg+.bg-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(237,241,247,.62),rgba(237,241,247,.82));backdrop-filter:blur(2px);}
+@media(prefers-color-scheme:dark){#bgImg+.bg-veil{background:linear-gradient(180deg,rgba(13,16,23,.68),rgba(13,16,23,.88));}}
+/* 动态光斑 */
+.orb{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;will-change:transform;pointer-events:none;}
+.orb1{width:44vmax;height:44vmax;background:radial-gradient(circle,rgba(18,183,245,.55),transparent 65%);top:-12vmax;left:-10vmax;animation:drift1 26s ease-in-out infinite alternate;}
+.orb2{width:38vmax;height:38vmax;background:radial-gradient(circle,rgba(0,180,42,.28),transparent 65%);bottom:-10vmax;right:-8vmax;animation:drift2 32s ease-in-out infinite alternate;}
+.orb3{width:30vmax;height:30vmax;background:radial-gradient(circle,rgba(255,125,0,.20),transparent 65%);top:38%;right:-12vmax;animation:drift3 38s ease-in-out infinite alternate;}
+@keyframes drift1{from{transform:translate(0,0) scale(1);}to{transform:translate(9vmax,7vmax) scale(1.15);}}
+@keyframes drift2{from{transform:translate(0,0) scale(1);}to{transform:translate(-8vmax,-6vmax) scale(1.1);}}
+@keyframes drift3{from{transform:translate(0,0);}to{transform:translate(-10vmax,-8vmax) scale(1.2);}}
+@media(prefers-reduced-motion:reduce){.orb{animation:none;}}
+/* ===== 布局 ===== */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:rgba(139,148,167,.35);border-radius:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+.page{display:none;flex-direction:column;height:100%;}
+.page.active{display:flex;animation:pageIn .3s ease;}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+/* ===== 顶部导航：悬浮胶囊（与底部导航呼应） ===== */
+.page{padding:calc(10px + env(safe-area-inset-top,0px)) 12px 0;}
+.header{background:var(--glass);backdrop-filter:var(--blur-nav);-webkit-backdrop-filter:var(--blur-nav);color:var(--text);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:5;border-radius:24px;border:1px solid var(--border);box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 10px 36px rgba(26,32,48,.14);max-width:560px;margin:0 auto;width:100%;}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.header{background:var(--card-solid);}}
+.header h1{font-size:17px;font-weight:700;letter-spacing:.3px;display:flex;align-items:center;color:var(--text);}
+.header h1 .status-dot{margin-right:8px;}
+.back-btn{background:var(--primary-light);border:none;color:var(--primary);padding:7px 14px;border-radius:14px;font-size:13px;font-weight:600;min-height:32px;cursor:pointer;transition:transform .12s,background .15s;font-family:inherit;}
+.back-btn:active{transform:scale(.94);}
+.content{flex:1;overflow-y:auto;padding:18px 16px 100px;scroll-behavior:smooth;overscroll-behavior:contain;}
+/* ===== 卡片：毛玻璃 ===== */
+.card{background:var(--card);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--border);transition:box-shadow .25s,transform .25s;}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.card{background:var(--card-solid);}}
+.card:hover{box-shadow:var(--shadow-lg);}
+.card h3{font-size:11.5px;font-weight:700;color:var(--text3);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;letter-spacing:1.2px;}
+.status-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--danger);margin-right:6px;vertical-align:middle;}
+.status-dot.on{background:var(--success);box-shadow:0 0 12px rgba(0,180,42,.65);animation:pulse 2.2s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,180,42,.45);}70%{box-shadow:0 0 0 9px rgba(0,180,42,0);}100%{box-shadow:0 0 0 0 rgba(0,180,42,0);}}
+#statusText{font-size:16px;font-weight:700;margin-bottom:12px;padding:13px 16px;border-radius:16px;background:var(--primary-light);border:1px solid rgba(18,183,245,.22);color:var(--text);}
+/* ===== 按钮 ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--grad);color:#fff;border:none;padding:12px 16px;border-radius:16px;font-size:15px;font-weight:600;cursor:pointer;min-height:44px;min-width:44px;transition:transform .12s,box-shadow .25s,opacity .2s;box-shadow:0 6px 18px rgba(18,183,245,.35),0 1px 0 rgba(255,255,255,.25) inset;font-family:inherit;}
+.btn:hover{box-shadow:0 10px 26px rgba(18,183,245,.45);transform:translateY(-1px);}
+.btn:active{transform:scale(.97);}
+.btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+.btn.block{width:100%;}
+.btn.secondary{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);color:var(--primary);border:1.5px solid rgba(18,183,245,.5);box-shadow:none;}
+.btn.secondary:hover{background:var(--primary-light);}
+@media(prefers-color-scheme:dark){
+  .btn.secondary{background:rgba(255,255,255,.14);color:#E8F4FC;border-color:rgba(18,183,245,.55);}
+  .btn.secondary:hover{background:rgba(255,255,255,.22);}
+  .mpin{color:#7FC9F0;}
+}
+.btn.danger{background:linear-gradient(135deg,#E03131,#F53F3F);box-shadow:0 6px 18px rgba(245,63,63,.35),0 1px 0 rgba(255,255,255,.25) inset;}
+.btn.success{background:linear-gradient(135deg,#009A29,#00C241);box-shadow:0 6px 18px rgba(0,180,42,.35),0 1px 0 rgba(255,255,255,.25) inset;}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.btn-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;}
+/* ===== 输入控件 ===== */
+.input,.select,.textarea{width:100%;padding:10px 14px;border:1.5px solid var(--border2);border-radius:14px;background:rgba(255,255,255,.55);color:var(--text);font-size:14px;min-height:44px;font-family:inherit;outline:none;-webkit-appearance:none;transition:border-color .15s,box-shadow .15s;}
+@media(prefers-color-scheme:dark){.input,.select,.textarea{background:rgba(13,16,23,.45);}}
+.textarea{min-height:90px;resize:vertical;line-height:1.5;}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3.5px rgba(18,183,245,.15);}
+.input::placeholder,.textarea::placeholder{color:var(--text3);opacity:.75;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px;font-weight:600;letter-spacing:.3px;}
+.row{display:flex;gap:8px;align-items:center;}
+.row>*{flex:1;}
+.row>button{flex:0 0 auto;}
+/* ===== 开关 ===== */
+.switch{position:relative;width:48px;height:28px;background:rgba(139,148,167,.4);border-radius:14px;cursor:pointer;transition:background .25s;min-width:48px;min-height:28px;flex-shrink:0;box-shadow:inset 0 2px 4px rgba(0,0,0,.12);}
+.switch.on{background:linear-gradient(135deg,#00A82E,#00C241);box-shadow:0 2px 10px rgba(0,180,42,.4);}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:transform .25s cubic-bezier(.34,1.56,.64,1);box-shadow:0 2px 5px rgba(0,0,0,.28);}
+.switch.on::after{transform:translateX(20px);}
+.switch-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;gap:12px;}
+.switch-row .lbl{font-size:14px;font-weight:500;}
+.switch-row .sub{font-size:12px;color:var(--text3);margin-top:2px;}
+/* ===== 日志 ===== */
+.log{background:rgba(15,18,24,.88);color:#C9D1D9;font-family:Menlo,Consolas,"Cascadia Code",monospace;font-size:12px;padding:12px;border-radius:16px;max-height:70vh;overflow-y:auto;line-height:1.6;white-space:pre-wrap;word-break:break-all;border:1px solid rgba(255,255,255,.08);}
+.log .l-err{color:#FF8785;}.log .l-ok{color:#7EE787;}.log .l-warn{color:#E3B341;}.log .l-info{color:#79C0FF;}
+/* ===== 底部导航：iOS 悬浮胶囊 ===== */
+.nav{position:fixed;bottom:calc(12px + var(--safe));left:50%;transform:translateX(-50%);background:var(--glass);backdrop-filter:var(--blur-nav);-webkit-backdrop-filter:var(--blur-nav);border:1px solid var(--border);display:flex;padding:6px;border-radius:26px;z-index:10;box-shadow:0 10px 40px rgba(26,32,48,.18),0 1px 0 rgba(255,255,255,.5) inset;max-width:calc(100vw - 24px);}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.nav{background:var(--card-solid);}}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 16px;gap:3px;background:none;border:none;color:var(--text3);font-size:10.5px;font-weight:600;cursor:pointer;min-height:50px;transition:color .2s;position:relative;border-radius:20px;letter-spacing:.2px;}
+.nav-btn.active{color:#fff;}
+.nav-btn.active::before{content:"";position:absolute;inset:0;background:var(--grad);border-radius:20px;z-index:-1;box-shadow:0 4px 14px rgba(18,183,245,.4);animation:navPop .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes navPop{from{transform:scale(.7);opacity:0;}to{transform:scale(1);opacity:1;}}
+.nav-btn .ic{font-size:19px;transition:transform .25s cubic-bezier(.34,1.56,.64,1);}
+.nav-btn.active .ic{transform:translateY(-1px);}
+.nav-btn .badge{position:absolute;top:2px;right:8px;}
+/* ===== 供应商 ===== */
+.provider-list{display:flex;flex-direction:column;gap:10px;margin-bottom:10px;}
+.provider-item{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:12px;border:1.5px solid var(--border2);border-radius:18px;background:rgba(255,255,255,.45);min-height:48px;transition:border-color .15s,box-shadow .2s;}
+@media(prefers-color-scheme:dark){.provider-item{background:rgba(13,16,23,.35);}}
+.provider-item.active{border-color:rgba(18,183,245,.6);background:var(--primary-light);box-shadow:0 0 0 3px rgba(18,183,245,.12);}
+.provider-item .pname{flex:1;font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:100px;}
+.provider-item .pmeta{font-size:11px;color:var(--text3);}
+.provider-item .pdel{background:none;border:1.5px solid rgba(245,63,63,.5);color:var(--danger);padding:4px 9px;border-radius:10px;font-size:12px;min-height:30px;min-width:30px;cursor:pointer;transition:background .15s,color .15s;font-family:inherit;}
+.provider-item .pdel:hover{background:var(--danger);color:#fff;}
+.provider-item .psel{background:var(--grad);color:#fff;border:none;padding:4px 12px;border-radius:10px;font-size:12px;font-weight:600;min-height:30px;cursor:pointer;box-shadow:0 3px 10px rgba(18,183,245,.3);font-family:inherit;}
+.provider-item.active .psel{background:linear-gradient(135deg,#009A29,#00C241);box-shadow:0 3px 10px rgba(0,180,42,.3);}
+/* ===== 会话 ===== */
+.session-item{padding:14px 16px;border-bottom:1px solid var(--border2);cursor:pointer;min-height:52px;transition:background .15s;border-radius:14px;margin:0 2px;}
+.session-item:hover{background:var(--primary-light);}
+.session-item:last-child{border-bottom:none;}
+.session-item .ti{font-weight:600;margin-bottom:4px;display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+.session-item .pr{font-size:12px;color:var(--text3);margin-top:2px;}
+.session-item .tm{font-size:11px;color:var(--text3);flex-shrink:0;font-weight:400;}
+/* ===== Toast ===== */
+.toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 64px);left:50%;transform:translateX(-50%);background:rgba(20,24,32,.88);color:#fff;padding:11px 20px;border-radius:24px;font-size:13px;z-index:100;max-width:90%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:toastIn .28s cubic-bezier(.34,1.56,.64,1);}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-14px) scale(.92);}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}}
+.muted{color:var(--text3);font-size:12px;}
+a{color:var(--primary);}
+/* ===== 消息气泡 ===== */
+.msg-bubble{padding:10px 14px;border-radius:18px;margin-bottom:10px;font-size:14px;max-width:85%;word-break:break-word;line-height:1.55;white-space:pre-wrap;box-shadow:0 2px 10px rgba(26,32,48,.06);}
+.msg-user{background:linear-gradient(135deg,#0FA0E4,#38C6FA);border-bottom-right-radius:6px;margin-left:auto;color:#fff;box-shadow:0 4px 14px rgba(18,183,245,.3);}
+.msg-bot{background:rgba(255,255,255,.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--border);border-bottom-left-radius:6px;margin-right:auto;}
+@media(prefers-color-scheme:dark){.msg-bot{background:rgba(30,34,44,.7);}}
+.msg-meta{font-size:11px;color:var(--text3);margin-bottom:4px;font-weight:500;}
+.msg-user+.msg-meta{text-align:right;}
+/* ===== 其他组件 ===== */
+.kv{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;}
+.kv .k{color:var(--text2);}
+.kv span:last-child{font-weight:600;font-variant-numeric:tabular-nums;text-align:right;}
+.mem-item{background:rgba(255,255,255,.5);padding:10px 12px;border-radius:14px;margin-bottom:8px;font-size:13px;border-left:3px solid var(--primary);box-shadow:0 1px 6px rgba(26,32,48,.05);}
+@media(prefers-color-scheme:dark){.mem-item{background:rgba(13,16,23,.4);}}
+.mem-item .mt{color:var(--text3);font-size:11px;margin-top:5px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.mpin{background:none;border:1px solid var(--border2);color:var(--primary);border-radius:8px;padding:2px 9px;font-size:11px;cursor:pointer;min-height:22px;transition:background .15s;font-family:inherit;}
+.mpin:hover{background:var(--primary-light);}
+.det-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+.stat{background:rgba(255,255,255,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--border);padding:12px 8px;border-radius:16px;text-align:center;box-shadow:0 2px 10px rgba(26,32,48,.05);}
+@media(prefers-color-scheme:dark){.stat{background:rgba(30,34,44,.55);}}
+.stat .n{font-size:20px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;}
+.stat .l{font-size:11px;color:var(--text3);margin-top:2px;}
+.hidden{display:none!important;}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.badge{display:inline-block;background:linear-gradient(135deg,#E03131,#F53F3F);color:#fff;font-size:10px;font-weight:600;padding:1px 7px;border-radius:10px;margin-left:4px;vertical-align:middle;}
+#tokenExpire{font-size:14px;font-weight:500;padding:10px 14px;border-radius:14px;background:rgba(255,255,255,.5);border:1px solid var(--border);}
+@media(prefers-color-scheme:dark){#tokenExpire{background:rgba(13,16,23,.4);}}
+/* ===== 主页画廊卡：图片填满卡片 ===== */
+.hero{position:relative;border-radius:26px;overflow:hidden;margin:4px 0 16px;background:linear-gradient(120deg,#0B79B8,#0FA0E4 50%,#22ADE8);box-shadow:var(--shadow-lg);height:230px;cursor:pointer;animation:heroIn .6s cubic-bezier(.22,1,.36,1);}
+@keyframes heroIn{from{opacity:0;transform:translateY(16px) scale(.98);}to{opacity:1;transform:none;}}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s ease;}
+.hero img.show{opacity:1;animation:kenburns 14s ease-out forwards;}
+@keyframes kenburns{from{transform:scale(1.14) translate(1.5%,1%);}to{transform:scale(1.02) translate(0,0);}}
+/* 加载占位：微光扫过 */
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.22) 50%,transparent 70%);transform:translateX(-100%);animation:shimmer 2.4s ease-in-out infinite;z-index:1;}
+@keyframes shimmer{to{transform:translateX(100%);}}
+.hero.loaded::before{display:none;}
+/* 底部渐变压暗，衬托按钮 */
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(180deg,transparent,rgba(10,14,22,.42));z-index:1;pointer-events:none;}
+/* 光影定期扫过图片 */
+.hero-sheen{position:absolute;top:-20%;bottom:-20%;left:-30%;width:36%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-14deg);z-index:2;animation:sheen 7s ease-in-out infinite;pointer-events:none;}
+@keyframes sheen{0%,72%{left:-40%;opacity:0;}78%{opacity:1;}92%,100%{left:120%;opacity:0;}}
+.hero-refresh{position:absolute;bottom:12px;right:12px;z-index:3;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(15,20,30,.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .2s;line-height:1;}
+.hero-refresh:active{transform:scale(.85) rotate(200deg);}
+.hero-refresh:hover{background:rgba(15,20,30,.62);}
+.hero-refresh.spinning{animation:spinFull .7s ease;}
+@keyframes spinFull{from{transform:rotate(0);}to{transform:rotate(360deg);}}
+/* 图片淡出切换时轻微下沉 */
+.hero.switching{transform:scale(.985);transition:transform .4s ease;}
+/* ===== 状态卡动态特效 ===== */
+#statCard{position:relative;overflow:hidden;transition:box-shadow .4s ease,border-color .4s ease;}
+#statCard.on{border-color:rgba(0,180,42,.4);animation:cardBreath 2.6s ease-in-out infinite;}
+@keyframes cardBreath{0%,100%{box-shadow:0 2px 8px rgba(0,180,42,.08),0 12px 36px rgba(0,180,42,.14);}50%{box-shadow:0 2px 12px rgba(0,180,42,.16),0 16px 48px rgba(0,180,42,.28);}}
+#statCard.on::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#00A82E,#00C241,#7EE787,#00C241,#00A82E);background-size:200% 100%;animation:flow 3s linear infinite;z-index:1;}
+@keyframes flow{from{background-position:0 0;}to{background-position:200% 0;}}
+#statCard.connecting{border-color:rgba(255,125,0,.4);box-shadow:0 2px 8px rgba(255,125,0,.08),0 12px 36px rgba(255,125,0,.14);}
+#statCard.connecting::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#FF7D00,#FFA940,#FF7D00);background-size:200% 100%;animation:flow 1.2s linear infinite;z-index:1;}
+#statCard.off::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--border2);z-index:1;}
+#statusText{transition:color .3s;}
+#statCard.on #statusText{color:var(--success);}
+#statCard.connecting #statusText{color:var(--warning);}
+#statCard .kv{transition:opacity .3s;}
+#statCard.on .kv span:last-child{color:var(--success);}
+@media(prefers-reduced-motion:reduce){.orb,.hero-sheen,#statCard.on,#statCard.on::before,#statCard.connecting::before,.hero img,.hero::before{animation:none!important;}}
+</style>
+</head>
+<body>
+
+<!-- 全局动态背景 -->
+<div id="bgWrap" aria-hidden="true">
+  <img id="bgImg" alt="">
+  <div class="bg-veil"></div>
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+</div>
+
+<!-- 状态页 -->
+<div class="page active" id="page-status">
+  <div class="header"><h1><span class="status-dot" id="dot"></span>QQBot AI</h1><span class="muted" id="ver" style="display:none"></span></div>
+  <div class="content" style="padding-bottom:100px">
+    <div class="hero" id="heroCard" onclick="rotateHero()" title="点击换一张">
+      <img id="heroImg" alt="">
+      <div class="hero-sheen"></div>
+      <button class="hero-refresh" onclick="event.stopPropagation();rotateHero(true)" type="button" aria-label="换一张">⟳</button>
+    </div>
+    <div class="card off" id="statCard">
+      <h3>运行状态</h3>
+      <div id="statusText">未启动</div>
+      <div class="kv"><span class="k">机器人</span><span id="botName">-</span></div>
+      <div class="kv"><span class="k">已连接</span><span id="connTime">-</span></div>
+      <div class="kv"><span class="k">已处理消息</span><span id="msgCount">0</span></div>
+      <button class="btn block" id="btnToggle" onclick="toggleBot()" type="button">🚀 启动机器人</button>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="testAI()" type="button">🧪 测试AI</button>
+        <button class="btn secondary" onclick="diag()" type="button">🔍 诊断</button>
+      </div>
+      <button class="btn secondary block" onclick="refreshToken()" type="button" style="margin-top:8px">🔄 刷新Token</button>
+    </div>
+    <div class="card">
+      <h3>手动Token（兜底）</h3>
+      <div class="row">
+        <input class="input" id="manualToken" placeholder="万一代理全挂，粘贴Token到这">
+        <button class="btn" onclick="useManualToken()" type="button">使用</button>
+      </div>
+      <div class="muted" style="margin-top:6px">Token在 <a href="https://bot.q.qq.com/sandbox" target="_blank" style="color:var(--primary)">QQ机器人调试工具</a> 获取，有效期2小时</div>
+    </div>
+    <div class="card">
+      <h3>Token有效期</h3>
+      <div id="tokenExpire">尚未获取</div>
+    </div>
+  </div>
+</div>
+
+<!-- 设置页 -->
+<div class="page" id="page-settings">
+  <div class="header"><h1>⚙️ 设置</h1></div>
+  <div class="content" style="padding-bottom:100px">
+    <div class="card">
+      <h3>QQ 机器人凭据</h3>
+      <div class="field"><label>AppID</label><input class="input" id="appId" placeholder="请输入你的AppID"></div>
+      <div class="field"><label>AppSecret</label><input class="input" id="appSecret" type="password" placeholder="请输入你的AppSecret"></div>
+      <div class="field"><label>沙箱模式（新机器人必开）</label>
+        <div class="switch on" id="swSandbox" onclick="toggleSwitch('swSandbox')"></div>
+        <div class="muted">沙箱模式只响应你的测试频道/测试群，正式上线关闭</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>AI 供应商 <button class="btn secondary" onclick="addProviderSlot()" type="button" style="padding:6px 12px;min-height:34px;font-size:13px">➕ 添加槽位</button></h3>
+      <div class="provider-list" id="provList"></div>
+      <div class="muted">• 默认是免费公益站（无需Key）<br>• 点击「选中」切换当前使用的供应商<br>• 不同供应商配置独立保存</div>
+    </div>
+    <div class="card">
+      <h3>机器人设置</h3>
+      <div class="field"><label>系统提示词（人设）</label><textarea class="textarea" id="sysPrompt">你是一个友善可爱的AI助手，回复简洁自然，不啰嗦。</textarea></div>
+      <div class="field">
+        <div class="switch-row"><div><div class="lbl">⏰ 注入当前时间</div><div class="sub">让AI知道现在几点/星期几</div></div><div class="switch on" id="swTime" onclick="toggleSwitch('swTime')"></div></div>
+        <div class="switch-row"><div><div class="lbl">🧠 长期记忆</div><div class="sub">超窗自动AI摘要</div></div><div class="switch on" id="swMemory" onclick="toggleSwitch('swMemory')"></div></div>
+        <div class="switch-row"><div><div class="lbl">✂️ AI智能分条</div><div class="sub">AI用 \ 分隔多条消息，像真人分条发送</div></div><div class="switch on" id="swMulti" onclick="toggleSwitch('swMulti')"></div></div>
+        <div class="switch-row"><div><div class="lbl">💬 超长兜底分段</div><div class="sub">单条超长时自动硬切，防止发送失败</div></div><div class="switch on" id="swSplit" onclick="toggleSwitch('swSplit')"></div></div>
+        <div class="switch-row"><div><div class="lbl">🔗 合并连续消息</div><div class="sub">用户连发多条时合并为一次回复</div></div><div class="switch on" id="swMerge" onclick="toggleSwitch('swMerge')"></div></div>
+        <div class="switch-row"><div><div class="lbl">👥 回复群聊</div></div><div class="switch on" id="swGroup" onclick="toggleSwitch('swGroup')"></div></div>
+        <div class="switch-row"><div><div class="lbl">✉️ 回复私聊</div></div><div class="switch on" id="swPvt" onclick="toggleSwitch('swPvt')"></div></div>
+      </div>
+      <div class="field"><label>上下文窗口（轮）</label><input class="input" id="winSize" type="number" value="15" min="5" max="100"></div>
+      <div class="field"><label>合并等待（秒，0为不等待）</label><input class="input" id="mergeWait" type="number" value="2.5" min="0" max="10" step="0.5"></div>
+      <div class="field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><label>兜底切分长度（字）</label><input class="input" id="segLen" type="number" value="2800" min="500" max="3000"></div>
+        <div><label>分条间隔（秒）</label><input class="input" id="segGap" type="number" value="1" min="0.5" max="10" step="0.5"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>🌐 联网搜索（Tavily）</h3>
+      <div class="switch-row"><div><div class="lbl">🌐 启用联网搜索</div><div class="sub">AI 自动判断是否需要搜索，查实时信息</div></div><div class="switch" id="swSearch" onclick="toggleSwitch('swSearch')"></div></div>
+      <div class="field"><label>Tavily API Key</label><input class="input" id="tavilyKey" type="password" placeholder="tvly-...（tavily.com 免费注册获取）"></div>
+      <div class="muted">• OpenAI兼容供应商：原生 Function Calling 工具调用<br>• 免费公益站：SEARCH 指令协议（自动兼容）<br>• 免费额度：每月1000次搜索<br>• Key 仅保存在本机浏览器，不会上传</div>
+      <button class="btn secondary block" onclick="testSearch()" type="button" style="margin-top:8px">🔎 测试搜索</button>
+    </div>
+    <div class="card">
+      <h3>保活设置</h3>
+      <div class="muted">✅ 屏幕常亮锁（防止浏览器休眠断连）</div>
+      <div class="muted">✅ 30秒WebSocket主动Ping（防止后台被掐）</div>
+      <div class="muted">✅ 断线自动指数退避重连</div>
+      <div class="muted">✅ 切回前台自动检测重连</div>
+      <div class="muted">✅ Token自动续期（提前5分钟刷新）</div>
+      <div class="muted">✅ 桌面通知权限（让浏览器认为页面活跃）</div>
+    </div>
+    <button class="btn block" onclick="saveConfig()" type="button">💾 保存配置</button>
+    <button class="btn danger block" onclick="clearAllData()" type="button" style="margin-top:8px">🗑️ 清空所有数据</button>
+  </div>
+</div>
+
+<!-- 会话页 -->
+<div class="page" id="page-sessions">
+  <div class="header"><h1>💬 会话</h1></div>
+  <div class="content" id="sessList" style="padding-bottom:100px">
+    <div class="muted" style="text-align:center;padding:40px">暂无会话，发一条消息就有了</div>
+  </div>
+</div>
+
+<!-- 会话详情页 -->
+<div class="page" id="page-detail">
+  <div class="header"><button class="back-btn" onclick="backFromDetail()" type="button">← 返回</button><h1 id="detTitle">会话详情</h1><button class="back-btn" onclick="refreshDetail()" type="button">🔄刷新</button></div>
+  <div class="content" style="padding-bottom:100px" id="detBody"></div>
+</div>
+
+<!-- 日志页 -->
+<div class="page" id="page-log">
+  <div class="header"><h1>📋 日志</h1><button class="back-btn" onclick="clearLog()" type="button">清空</button></div>
+  <div class="content" style="padding-bottom:100px"><div class="log" id="logBox"></div></div>
+</div>
+
+<!-- 底部导航 -->
+<div class="nav">
+  <button class="nav-btn active" data-page="status" onclick="switchTab('status')" type="button"><span class="ic">🏠</span>状态</button>
+  <button class="nav-btn" data-page="settings" onclick="switchTab('settings')" type="button"><span class="ic">⚙️</span>设置</button>
+  <button class="nav-btn" data-page="sessions" onclick="switchTab('sessions')" type="button"><span class="ic">💬</span>会话<span class="badge" id="unreadBadge" style="display:none">0</span></button>
+  <button class="nav-btn" data-page="log" onclick="switchTab('log')" type="button"><span class="ic">📋</span>日志</button>
+</div>
+
+<script>
+/* =============== 工具函数 =============== */
+const $=id=>document.getElementById(id);
+let toastTimer;
+function toast(msg){
+  const old=document.querySelector('.toast');
+  if(old)old.remove();
+  const t=document.createElement('div');
+  t.className='toast';t.textContent=msg;document.body.appendChild(t);
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.remove(),2500);
+}
+function log(msg,type=''){
+  const box=$('logBox');const t=new Date();
+  const ts=`${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
+  const line=document.createElement('div');
+  line.className='l-'+type;
+  line.textContent=`[${ts}] ${msg}`;
+  box.appendChild(line);
+  box.scrollTop=box.scrollHeight;
+  while(box.children.length>500)box.removeChild(box.firstChild);
+}
+function switchTab(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===name));
+  if(name==='sessions')renderSessions();
+  if(name==='detail'&&_curDetailCid)refreshDetail();
+}
+function toggleSwitch(id){const el=$(id);el.classList.toggle('on');}
+function switchOn(id){$(id).classList.add('on');}
+function switchOff(id){$(id).classList.remove('on');}
+function switchIs(id){return $(id).classList.contains('on');}
+
+/* =============== 配置持久化 - 默认只有免费站，其他空出来让用户自己加 =============== */
+const DEFAULT_CFG={
+  appId:'',appSecret:'',
+  curProvider:'free',
+  providers:{
+    free:{name:'🆓 免费公益站',type:'free',base:'https://free-api.cnmwx.com/v1/completions',key:'',model:'free-model'}
+  },
+  sysPrompt:'你是一个友善可爱的AI助手，回复简洁自然，不啰嗦。',
+  injectTime:true, memory:true, splitReply:true, groupReply:true, pvtReply:true,
+  multiMsg:true, search:false, tavilyKey:'',
+  mergeMsgs:true, mergeWait:2.5, segLen:2800, segGap:1,
+  windowSize:15, sandbox:true
+};
+let CFG=loadCfg();
+function loadCfg(){
+  try{
+    const s=localStorage.getItem('qqbot_cfg');
+    if(s){
+      const c=JSON.parse(s);
+      // 确保免费站始终存在
+      const merged=Object.assign({},DEFAULT_CFG,c);
+      merged.providers=Object.assign({},DEFAULT_CFG.providers,c.providers||{});
+      // 确保当前选中的供应商存在
+      if(!merged.providers[merged.curProvider])merged.curProvider='free';
+      return merged;
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEFAULT_CFG));
+}
+function saveCfg(){localStorage.setItem('qqbot_cfg',JSON.stringify(CFG));}
+let _editingPid=null;
+
+/* =============== 长期记忆 IndexedDB =============== */
+let DB=null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    if(DB)return res(DB);
+    const r=indexedDB.open('QQBotDB',1);
+    r.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('msgs')){const s=d.createObjectStore('msgs',{keyPath:'id',autoIncrement:true});s.createIndex('cid','cid');s.createIndex('ts','ts');}
+      if(!d.objectStoreNames.contains('mem')){const s=d.createObjectStore('mem',{keyPath:'id',autoIncrement:true});s.createIndex('cid','cid');s.createIndex('imp','imp');}
+      if(!d.objectStoreNames.contains('sess'))d.createObjectStore('sess',{keyPath:'cid'});
+    };
+    r.onsuccess=e=>{DB=e.target.result;res(DB);};
+    r.onerror=e=>rej(e.target.error);
+  });
+}
+async function dbAdd(store,obj){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readwrite');const req=t.objectStore(store).add(obj);t.oncomplete=()=>res(req.result);t.onerror=e=>rej(e.target.error);});}
+async function dbPut(store,obj){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readwrite');t.objectStore(store).put(obj);t.oncomplete=()=>res();t.onerror=e=>rej(e.target.error);});}
+async function dbGetAll(store,index,value){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readonly');const s=t.objectStore(store);const r=index?s.index(index).getAll(value):s.getAll();r.onsuccess=()=>res(r.result);r.onerror=e=>rej(e.target.error);});}
+async function dbClear(store){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readwrite');t.objectStore(store).clear();t.oncomplete=()=>res();t.onerror=e=>rej(e.target.error);});}
+async function dbDel(store,id){const d=await openDB();return new Promise((res,rej)=>{const t=d.transaction(store,'readwrite');t.objectStore(store).delete(id);t.oncomplete=()=>res();t.onerror=e=>rej(e.target.error);});}
+
+/* =============== QQ Bot 核心 =============== */
+const PROXIES=[
+  u=>`https://proxy.cors.sh/${u}`,
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://corsproxy.io/?${encodeURIComponent(u)}`
+];
+let accessToken='',tokenExpireAt=0,ws=null,heartbeatTimer=null,pingTimer=null,reconnectTimer=null,botInfo={},running=false,msgCount=0,startTime=0;
+let wakeLock=null,reconnectDelay=1000,wsAlive=true;
+
+async function qqFetch(path,opts={},tryProxy=true){
+  const url=`https://api.sgroup.qq.com${path}`;
+  const hdrs=Object.assign({'Authorization':`QQBot ${accessToken}`,'Content-Type':'application/json'},opts.headers||{});
+  try{
+    const r=await fetch(url,Object.assign({},opts,{headers:hdrs,mode:'cors'}));
+    if(r.ok||r.status<500)return r;
+    log(`直连${path}返回${r.status}，换代理`,'warn');
+  }catch(e){log(`直连${path}失败:${e.message}`,'warn');}
+  if(!tryProxy)throw new Error('直连失败且不使用代理');
+  for(const mk of PROXIES){
+    try{
+      const pu=mk(url);
+      const r=await fetch(pu,Object.assign({},opts,{headers:hdrs,mode:'cors'}));
+      if(r.ok)return r;
+      log(`代理返回${r.status}`,'warn');
+    }catch(e){log(`代理失败:${e.message}`,'warn');}
+  }
+  throw new Error('所有代理均失败');
+}
+async function fetchNewToken(){
+  if($('manualToken').value.trim()){
+    accessToken=$('manualToken').value.trim();
+    tokenExpireAt=Date.now()+7000*1000;
+    log('✅ 使用手动输入的Token','ok');
+    updateTokenUI();return;
+  }
+  if(!CFG.appId||!CFG.appSecret)throw new Error('请先在设置填写AppID和AppSecret');
+  const body=JSON.stringify({appId:CFG.appId,clientSecret:CFG.appSecret});
+  const url='https://bots.qq.com/app/getAppAccessToken';
+  try{
+    const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body});
+    if(r.ok){const d=await r.json();accessToken=d.access_token;tokenExpireAt=Date.now()+(d.expires_in-300)*1000;log('✅ Token获取(直连)','ok');updateTokenUI();return;}
+  }catch(e){log(`直连token失败:${e.message}`,'warn');}
+  for(const mk of PROXIES){
+    try{
+      const r=await fetch(mk(url),{method:'POST',headers:{'Content-Type':'application/json'},body});
+      if(r.ok){
+        const txt=await r.text();
+        let j;try{j=JSON.parse(txt);}catch{
+          const m=txt.match(/\{[\s\S]*\}/);if(m)j=JSON.parse(m[0]);else throw new Error('响应非JSON');
+        }
+        if(j.access_token){accessToken=j.access_token;tokenExpireAt=Date.now()+(j.expires_in||7200-300)*1000;log(`✅ Token获取成功`,'ok');updateTokenUI();return;}
+      }
+    }catch(e){log(`代理token失败:${e.message}`,'warn');}
+  }
+  throw new Error('无法获取Token，请手动粘贴Token或检查AppID/Secret');
+}
+function updateTokenUI(){
+  if(!accessToken){$('tokenExpire').textContent='尚未获取';return;}
+  const s=Math.max(0,Math.floor((tokenExpireAt-Date.now())/1000));
+  const m=Math.floor(s/60);
+  $('tokenExpire').textContent=`有效中，剩余约 ${m} 分 ${s%60} 秒`;
+  if(s<300&&running)fetchNewToken().catch(e=>log('Token刷新失败:'+e.message,'err'));
+}
+function startHeartbeat(interval){
+  stopHeartbeat();
+  heartbeatTimer=setInterval(()=>{
+    if(ws&&ws.readyState===1){
+      ws.send(JSON.stringify({op:1,d:null}));
+      wsAlive=false;
+      setTimeout(()=>{if(!wsAlive&&running){log('⚠️ 心跳超时，主动重连','warn');try{ws.close();}catch(e){}}},5000);
+    }
+  },interval);
+  // 额外30s应用层ping，防止后台被掐
+  pingTimer=setInterval(()=>{
+    if(ws&&ws.readyState===1){
+      try{ws.send(JSON.stringify({op:1,d:null}));}catch(e){}
+    }
+  },30000);
+}
+function stopHeartbeat(){
+  if(heartbeatTimer){clearInterval(heartbeatTimer);heartbeatTimer=null;}
+  if(pingTimer){clearInterval(pingTimer);pingTimer=null;}
+}
+function connectWS(){
+  return new Promise((resolve,reject)=>{
+    try{ws=new WebSocket('wss://api.sgroup.qq.com/websocket');}catch(e){return reject(e);}
+    let resolved=false;
+    ws.onopen=()=>log('🔌 WS连接成功，等待Hello','info');
+    ws.onmessage=async ev=>{
+      wsAlive=true;
+      try{
+        const p=JSON.parse(ev.data);
+        if(p.op===10){
+          log(`📥 Hello, 心跳${p.d.heartbeat_interval}ms`,'info');
+          startHeartbeat(p.d.heartbeat_interval);
+          const intents=CFG.sandbox?1<<25|1<<30:1<<25|1<<1|1<<0;
+          ws.send(JSON.stringify({op:2,d:{token:`QQBot ${accessToken}`,intents,shard:[0,1],properties:{$os:'web',$browser:'qqbot-web',$device:'browser'}}}));
+        }else if(p.op===0){
+          handleDispatch(p);
+          if(p.t==='READY'&&!resolved){
+            botInfo=p.d.user||{};resolved=true;
+            log(`🎉 鉴权成功！机器人: ${botInfo.username||'?'} (${botInfo.id||''})`,'ok');resolve();
+          }
+        }else if(p.op===11){wsAlive=true;}
+        else if(p.op===9){log('⚠️ Session失效，重连','warn');setTimeout(reconnect,1500);}
+        else if(p.op===7){log('⚠️ 服务器要求重连','warn');setTimeout(reconnect,1000);}
+      }catch(e){log('消息解析错:'+e.message,'err');}
+    };
+    ws.onerror=e=>{log('WS错误(可能是网络，尝试重连)','warn');if(!resolved)reject(e);};
+    ws.onclose=()=>{
+      stopHeartbeat();
+      log('🔌 WS断开','warn');
+      if(running){
+        reconnectDelay=Math.min(reconnectDelay*2,30000);
+        log(`⏱ ${reconnectDelay/1000}s后重连`,'info');
+        reconnectTimer=setTimeout(reconnect,reconnectDelay);
+      }
+      if(!resolved)reject(new Error('WS关闭'));
+    };
+    setTimeout(()=>{if(!resolved)reject(new Error('鉴权超时（30秒）'));},30000);
+  });
+}
+async function reconnect(){
+  clearTimeout(reconnectTimer);
+  if(!running)return;
+  try{await startBot(true);reconnectDelay=1000;}
+  catch(e){log('重连失败:'+e.message,'err');reconnectDelay=Math.min(reconnectDelay*2,30000);reconnectTimer=setTimeout(reconnect,reconnectDelay);}
+}
+async function startBot(isReconnect=false){
+  try{
+    setBtnLoading('btnToggle',true,'🚀 启动中...');
+    log(isReconnect?'🔄 重连中...':'🚀 启动机器人...');
+    setStatus('connecting','连接中...');
+    if(!isReconnect)await fetchNewToken();
+    else if(Date.now()>tokenExpireAt-60000)await fetchNewToken();
+    await connectWS();
+    setStatus('on',`已连接: ${botInfo.username||'?'}`);
+    startTime=Date.now();
+    $('botName').textContent=botInfo.username||'-';
+    $('connTime').textContent=new Date().toLocaleString();
+    setBtnLoading('btnToggle',false,'⏹ 停止机器人');
+    $('btnToggle').classList.remove('btn');$('btnToggle').classList.add('btn','danger');
+    if(!isReconnect)toast('机器人已上线 ✅');
+    // WakeLock
+    try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');log('🔒 屏幕常亮锁已获取','ok');}}catch(e){log('屏幕锁不可用:'+e.message,'warn');}
+    // 请求通知权限（可提升后台存活率）
+    try{if('Notification' in window&&Notification.permission==='default'){Notification.requestPermission().then(p=>{if(p==='granted')log('🔔 通知权限已授权（有助于后台保活）','ok');});}}catch(e){}
+  }catch(e){
+    log('启动失败: '+e.message,'err');
+    setStatus('err','启动失败: '+e.message);
+    setBtnLoading('btnToggle',false,'🚀 启动机器人');
+    $('btnToggle').classList.remove('danger');
+    toast('启动失败，看日志');
+    throw e;
+  }
+}
+function stopBot(){
+  running=false;
+  clearTimeout(reconnectTimer);stopHeartbeat();
+  for(const k in pendingBuffs){clearTimeout(pendingBuffs[k].timer);clearTimeout(pendingBuffs[k].maxTimer);delete pendingBuffs[k];}
+  if(ws){try{ws.close();}catch(e){}ws=null;}
+  if(wakeLock){try{wakeLock.release();}catch(e){}wakeLock=null;}
+  setStatus('off','已停止');
+  setBtnLoading('btnToggle',false,'🚀 启动机器人');
+  $('btnToggle').classList.remove('danger');
+  log('⏹ 机器人已停止');toast('已停止');
+}
+function setStatus(st,txt){
+  $('statusText').textContent=txt;
+  $('dot').classList.toggle('on',st==='on');
+  const sc=$('statCard');
+  if(sc){
+    sc.classList.remove('on','connecting','off');
+    sc.classList.add(st==='on'?'on':st==='connecting'?'connecting':'off');
+  }
+}
+function setBtnLoading(id,loading,txt){
+  const b=$(id);
+  b.disabled=!!loading;
+  if(loading){b.innerHTML='<span class="spin"></span> '+txt;}
+  else{b.textContent=txt;}
+}
+async function toggleBot(){
+  if(running){stopBot();}else{running=true;try{await startBot();}catch(e){running=false;}}
+}
+
+/* =============== 事件分发 =============== */
+async function handleDispatch(p){
+  const t=p.t,d=p.d;
+  let cid=null,userId=null,userName='',groupId='',guildId='',channelId='',content='',msgId='',eventType='';
+  if(t==='GROUP_AT_MESSAGE_CREATE'){
+    if(!CFG.groupReply)return;
+    eventType='group';groupId=d.group_id;cid='g:'+groupId;userId=d.author.member_openid;userName=d.author.author_openid?d.author.author_openid.slice(-6):'群友';
+    content=d.content||'';msgId=d.id;
+  }else if(t==='C2C_MESSAGE_CREATE'){
+    if(!CFG.pvtReply)return;
+    eventType='c2c';userId=d.author.user_openid;cid='c:'+userId;userName=d.author.username||'私聊';content=d.content||'';msgId=d.id;
+  }else if(t==='AT_MESSAGE_CREATE'){
+    eventType='guild';guildId=d.guild_id;channelId=d.channel_id;cid='ch:'+channelId;userId=d.author.id;userName=d.author.username||'';content=d.content||'';msgId=d.id;
+  }else if(t==='MESSAGE_CREATE'){
+    if(!CFG.pvtReply&&!d.guild_id)return;
+    eventType='guild_msg';guildId=d.guild_id;channelId=d.channel_id;cid='ch:'+channelId;userId=d.author?.id;userName=d.author?.username||'';content=d.content||'';msgId=d.id;
+  }else return;
+  content=content.replace(/<@!?(?:\d+)>/g,'').trim();
+  if(!content)return;
+  if(d.author&&d.author.username===botInfo.username)return;
+  log(`📨 [${eventType}] ${userName}: ${content.slice(0,40)}`,'info');
+  msgCount++;$('msgCount').textContent=msgCount;
+  // 保存会话
+  await saveSession(cid,eventType,userName,groupId||userId||channelId,content);
+  await dbAdd('msgs',{cid,role:'user',content,name:userName,ts:Date.now()});
+  // 实时追加到详情页（如果当前正在看这个会话）
+  if(_curDetailCid===cid)appendMsgToDetail('user',content,userName);
+  // 即时记忆捕获：用户明确要求"记住"的内容立即入库，不等AI摘要
+  if(CFG.memory)extractInstantMemory(cid,content);
+  // 多条消息聚合：合并等待期内连发的消息一次性回复（回复挂最新一条的msgId，保证被动回复有效）
+  const ev={eventType,groupId,userId,guildId,channelId,msgId};
+  if(CFG.mergeMsgs!==false){queueMessage(cid,content,userName,ev);}
+  else{processMessage(cid,content,userName,ev);}
+}
+/* =============== 多条消息聚合（入站） =============== */
+const pendingBuffs={}; // cid -> {texts, ev, userName, timer, maxTimer}
+const MERGE_MAX_WAIT=8000; // 最长等待，防止用户一直发导致一直不回复
+function queueMessage(cid,content,userName,ev){
+  let b=pendingBuffs[cid];
+  const waitMs=(CFG.mergeWait==null?2.5:CFG.mergeWait)*1000;
+  if(!b){
+    b=pendingBuffs[cid]={texts:[],ev,userName,timer:null,maxTimer:null};
+    b.maxTimer=setTimeout(()=>flushPending(cid),MERGE_MAX_WAIT);
+  }
+  b.ev=ev;b.userName=userName; // 更新为最新消息的凭据/回复锚点
+  b.texts.push(content);
+  log(`⏳ 消息进入合并缓冲（${b.texts.length}条）`,'info');
+  clearTimeout(b.timer);
+  if(waitMs>0){b.timer=setTimeout(()=>flushPending(cid),waitMs);}
+  else{flushPending(cid);}
+}
+function flushPending(cid){
+  const b=pendingBuffs[cid];
+  if(!b)return;
+  delete pendingBuffs[cid];
+  clearTimeout(b.timer);clearTimeout(b.maxTimer);
+  if(b.texts.length>1)log(`🔗 已合并${b.texts.length}条消息统一回复`,'info');
+  processMessage(cid,b.texts.join('\n'),b.userName,b.ev);
+}
+async function processMessage(cid,query,userName,ev){
+  try{
+    setStatus('on','回复中...');
+    const reply=await generateReply(cid,query,userName);
+    await dbAdd('msgs',{cid,role:'assistant',content:reply,ts:Date.now()});
+    if(_curDetailCid===cid)appendMsgToDetail('assistant',reply);
+    await sendQQReply(ev.eventType,ev,reply);
+    if(CFG.memory){tryAutoSummarize(cid);}
+    setStatus('on',`已连接: ${botInfo.username||'?'}`);
+    // 发通知（切后台时）
+    try{if('Notification' in window&&Notification.permission==='granted'&&document.visibilityState!=='visible'){new Notification('QQBot AI 新回复',{body:reply.slice(0,60)});}}catch(e){}
+  }catch(e){
+    log('回复失败:'+e.message,'err');
+    try{await sendQQReply(ev.eventType,ev,'（出错了:'+e.message.slice(0,50)+'）');}catch(e2){}
+    setStatus('on',`已连接: ${botInfo.username||'?'}`);
+  }
+}
+async function saveSession(cid,type,name,targetId,lastMsg){
+  try{const d=await openDB();await new Promise((res)=>{const t=d.transaction('sess','readwrite');const s=t.objectStore('sess');s.put({cid,type,name,targetId,lastMsg,ts:Date.now(),unread:0});t.oncomplete=res;});}catch(e){}
+}
+async function sendQQReply(type,ids,text){
+  const{groupId,userId,guildId,channelId,msgId}=ids;
+  let path='';
+  if(type==='group')path=`/v2/groups/${groupId}/messages`;
+  else if(type==='c2c')path=`/v2/users/${userId}/messages`;
+  else path=`/channels/${channelId}/messages`;
+  // 被动回复限制：群聊同一消息最多回复5次、单聊4次（官方规则），需递增 msg_seq
+  const passive=(type==='group'||type==='c2c');
+  const maxSeq=type==='group'?5:4;
+  const parts=buildSendParts(text,maxSeq,passive);
+  for(let i=0;i<parts.length;i++){
+    let seq=i+1;
+    const body={content:parts[i],msg_id:msgId};
+    if(passive)body.msg_seq=seq;
+    let sent=false;
+    for(let attempt=0;attempt<3&&!sent;attempt++){
+      try{
+        const r=await qqFetch(path,{method:'POST',body:JSON.stringify(body)});
+        if(r.ok){log(`📤 已发送(${i+1}/${parts.length})`,'ok');sent=true;break;}
+        const t=await r.text();log(`发消息返回${r.status}:${t.slice(0,200)}`,'err');
+        if(r.status===401||t.includes('11242')){await fetchNewToken();continue;}
+        // 40054005: msg_seq 去重 → 递增序号重试
+        if(passive&&t.includes('40054005')){body.msg_seq=++seq;log(`🔄 msg_seq去重，改用序号${body.msg_seq}`,'warn');continue;}
+        // 40054007: 内容超长 → 本条硬切重发
+        if(t.includes('40054007')||t.includes('消息长度超限')){
+          const cut=smartSplit(body.content,Math.max(500,(body.content||'').length>1200?1000:700));
+          if(cut.length>1){body.content=cut[0];log('✂️ 单条超长已截断重发','warn');continue;}
+        }
+        // 被动回复已过期/次数超限：放弃剩余分段（继续发也只会失败）
+        if(t.includes('304103')||t.includes('40034005')||t.includes('40034025')||t.includes('40034026')||t.includes('40034028')){
+          if(i+1<parts.length)log('⚠️ 被动回复已过期/超限，剩余分条取消','warn');
+          break;
+        }
+        break;
+      }catch(e){log(`发送失败重试${attempt+1}:${e.message}`,'warn');await new Promise(r=>setTimeout(r,1000));}
+    }
+    if(!sent&&i+1<parts.length)log(`第${i+1}条未发出`,'warn');
+    // 分条间隔：降低触发频控
+    await new Promise(r=>setTimeout(r,(CFG.segGap||1)*1000));
+  }
+}
+/* 构建发送分条：优先按 AI 输出的 \ 分隔；单条超长时兜底硬切；被动回复次数超限时合并尾部 */
+function buildSendParts(text,maxSeq,passive){
+  let parts=String(text||'').trim();
+  if(!parts)return[''];
+  // 1. AI 自主分条：单个反斜杠分隔
+  parts=parts.split(/\\+/).map(s=>s.trim()).filter(Boolean);
+  if(!parts.length)parts=[''];
+  // 2. 兜底：单条超过限制长度时静默硬切（开关可控）
+  const cap=Math.min(3000,CFG.segLen||2800);
+  if(CFG.splitReply!==false){
+    const out=[];
+    for(const p of parts){
+      if(p.length<=cap)out.push(p);
+      else out.push(...smartSplit(p,cap));
+    }
+    parts=out;
+  }else{
+    parts=parts.map(p=>p.length>cap?p.slice(0,cap):p);
+  }
+  // 3. 被动回复次数上限：超出时合并尾部条目（合并后如超长则截断，保证能发出）
+  if(passive&&parts.length>maxSeq){
+    const head=parts.slice(0,maxSeq-1);
+    let tail=parts.slice(maxSeq-1).join('\n');
+    if(tail.length>cap)tail=tail.slice(0,cap-6)+'\n…（超限）';
+    head.push(tail);
+    parts=head;
+    log(`⚙️ 被动回复限${maxSeq}条，已合并为${parts.length}条`,'info');
+  }
+  return parts;
+}
+/* 智能硬切：按空行 → 换行 → 句末标点 → 硬切，不标注序号 */
+function smartSplit(text,max=700){
+  text=String(text||'');
+  if(text.length<=max)return[text];
+  const parts=[];
+  let cur='';
+  const push=()=>{if(cur.trim()){parts.push(cur.trim());cur='';}};
+  const paras=text.split(/\n{2,}/);
+  for(const p of paras){
+    if(!p)continue;
+    if(((cur?cur+'\n\n':'')+p).length<=max){cur=cur?cur+'\n\n'+p:p;continue;}
+    push();
+    if(p.length<=max){cur=p;continue;}
+    // 段落本身超长：按行切
+    for(const line of p.split('\n')){
+      if(((cur?cur+'\n':'')+line).length<=max){cur=cur?cur+'\n'+line:line;continue;}
+      push();
+      if(line.length<=max){cur=line;continue;}
+      // 行超长：按句末标点切
+      let s='';
+      const sents=line.match(/[^。！？；!?;]+[。！？；!?;]*/g)||[line];
+      for(const sen of sents){
+        if((s+sen).length<=max){s+=sen;continue;}
+        if(s)parts.push(s);
+        if(sen.length<=max){s=sen;continue;}
+        // 单句超长：硬切
+        for(let j=0;j<sen.length;j+=max)parts.push(sen.slice(j,j+max));
+        s='';
+      }
+      cur=s;
+    }
+  }
+  push();
+  return parts;
+}
+
+/* =============== AI 调用 =============== */
+function filterOutput(text){
+  if(!text)return'';
+  text=text.replace(/<think[\s\S]*?<\/think>/gi,'');
+  text=text.replace(/<[^>]+>/g,'');
+  text=text.replace(/欢迎使用\s*公益站[!！]?\s*站长合作邮箱：?\s*wxgpt@qq\.com/gi,'');
+  text=text.replace(/公益站/gi,'');
+  text=text.replace(/站长合作邮箱[^\n]*/gi,'');
+  text=text.replace(/wxgpt@qq\.com/gi,'');
+  text=text.replace(/^[\s\n]+|[\s\n]+$/g,'');
+  return text;
+}
+async function buildMessages(cid,query){
+  const msgs=[];
+  let sys=CFG.sysPrompt||'';
+  if(CFG.injectTime){
+    const now=new Date();
+    const wd=['日','一','二','三','四','五','六'][now.getDay()];
+    sys+=`\n\n【系统信息】当前时间：${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${wd} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')} (UTC+8北京时间)。涉及日期、星期、今天、明天、倒计时、节日、时间段的问题，请严格以该时间为准，不要自己猜测。`;
+  }
+  if(CFG.memory){
+    try{
+      const mems=await dbGetAll('mem','cid',cid);
+      if(mems.length){
+        // 检索式注入：按 相关性(与当前问题的字面重叠) + 重要度 + 时近性 综合评分取Top，而非只按重要度
+        const now=Date.now();
+        const qg=bigrams(query);
+        const scored=mems.map(m=>{
+          const rel=overlapRatio(bigrams(m.content),qg);
+          const ageDays=(now-(m.ts||0))/86400000;
+          const rec=1/(1+ageDays/7); // 时近性：一周内衰减慢，越久权重越低
+          return{m,s:(m.imp||3)*0.5+rel*3+rec*1.5};
+        }).sort((a,b)=>b.s-a.s).slice(0,12);
+        const picked=scored.map(x=>x.m);
+        // 置顶记忆(imp>=5)永远注入（占位不超3条，防止挤掉相关记忆）
+        for(const m of mems){
+          if((m.imp||0)>=5&&!picked.includes(m)&&picked.length<15)picked.push(m);
+        }
+        // 异步记录命中次数与最近使用时间（供记忆管理参考，不阻塞回复）
+        (async()=>{try{for(const m of picked){m.hits=(m.hits||0)+1;m.lastUsed=now;await dbPut('mem',m);}}catch(e){}})();
+        sys+=`\n\n【长期记忆（关于这个会话的关键信息，按相关度筛选）】\n${picked.map((m,i)=>`${i+1}. ${m.content}`).join('\n')}\n（以上是历史总结，自然融入回复即可，不要生硬复述）`;
+      }
+    }catch(e){}
+  }
+  const supportsSystem=true;
+  // AI 自主分条能力：告知 AI 用 \ 分隔多条消息（发送端按 \ 拆分逐条发出）
+  if(CFG.multiMsg!==false){
+    sys+='\n\n【多条消息能力】你可以在回复中用单个反斜杠 \\ 作为分隔符，把回复拆成多条消息分开发送，就像真人在聊天软件里分条打字一样。使用规则：\n1. 适合分条的场合：列点/步骤说明、先给结论再给细节、设置悬念或强调、很长的科普\n2. 每条是一个完整自然的句子或段落，不要把一句话拦腰截断\n3. 简短的日常回复就不要分条，一条发完\n4. 每条控制在200字以内\n5. 绝对不要向用户提及或解释这个分隔符本身';
+  }
+  if(supportsSystem)msgs.push({role:'system',content:sys});
+  try{
+    const all=await dbGetAll('msgs','cid',cid);
+    // 严格按滑窗大小：只取最近 windowSize 条原文
+    const recent=all.sort((a,b)=>a.ts-b.ts).slice(-CFG.windowSize);
+    // 当前这条消息已入库，避免与即将追加的query重复
+    if(recent.length&&recent[recent.length-1].role==='user'&&recent[recent.length-1].content===query)recent.pop();
+    for(const m of recent)msgs.push({role:m.role,content:m.content});
+  }catch(e){log('加载历史失败:'+e.message,'warn');}
+  msgs.push({role:'user',content:query});
+  return msgs;
+}
+async function callFreeAPI(promptText){
+  const base=CFG.providers[CFG.curProvider].base||'https://free-api.cnmwx.com/v1/completions';
+  const r=await fetch(base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:promptText})});
+  if(!r.ok)throw new Error(`免费站HTTP${r.status}`);
+  const t=await r.text();
+  return filterOutput(t);
+}
+async function callOpenAI(messages,opts={}){
+  const p=CFG.providers[CFG.curProvider];
+  const base=p.base.replace(/\/+$/,'');
+  const url=base+'/chat/completions';
+  const hdrs={'Content-Type':'application/json'};
+  if(p.key)hdrs['Authorization']='Bearer '+p.key;
+  const body={model:p.model||'gpt-4o-mini',messages,temperature:0.7,stream:false};
+  if(opts.tools){
+    body.tools=opts.tools;
+    body.tool_choice=opts.tool_choice||'auto';
+  }
+  const r=await fetch(url,{method:'POST',headers:hdrs,body:JSON.stringify(body)});
+  if(!r.ok){const t=await r.text();throw new Error(`AI ${r.status}:${t.slice(0,200)}`);}
+  const j=await r.json();
+  let content='';
+  if(j.choices&&j.choices[0]){
+    const m=j.choices[0].message||{};
+    content=m.content||'';
+    if(m.reasoning_content)log('🧠 思考过程已过滤','info');
+    if(opts.tools&&m.tool_calls&&m.tool_calls.length)return{content:content||'',tool_calls:m.tool_calls};
+  }
+  return filterOutput(content);
+}
+/* =============== 联网搜索（Tavily，浏览器CORS直连） =============== */
+async function tavilySearch(query){
+  const key=(CFG.tavilyKey||'').trim();
+  if(!key)throw new Error('未配置Tavily Key（设置页填写）');
+  const body={api_key:key,query:String(query).slice(0,400),max_results:5,include_answer:true,search_depth:'basic'};
+  const r=await fetch('https://api.tavily.com/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){const t=await r.text();throw new Error(`Tavily ${r.status}:${t.slice(0,120)}`);}
+  const j=await r.json();
+  const parts=[];
+  if(j.answer)parts.push('【概要】'+String(j.answer).trim());
+  (j.results||[]).slice(0,5).forEach((x,i)=>{
+    parts.push(`【${i+1}】${x.title||''}\n${String(x.content||'').trim().slice(0,300)}\n来源: ${x.url||''}`);
+  });
+  if(!parts.length)throw new Error('无搜索结果');
+  return parts.join('\n\n').slice(0,4000);
+}
+/* OpenAI兼容供应商：原生 Function Calling 工具循环（最多2轮搜索） */
+async function callOpenAIWithTools(msgs){
+  const tools=[{type:'function',function:{
+    name:'web_search',
+    description:'联网搜索最新信息。当问题涉及实时数据、新闻、近期事件、价格、天气、你不确定的事实时调用；日常闲聊不要调用。',
+    parameters:{type:'object',properties:{query:{type:'string',description:'搜索关键词，简洁精准，中文或英文均可'}},required:['query']}
+  }}];
+  // 用户明确要求搜索时，首轮强制调用工具
+  const lastUser=[...msgs].reverse().find(m=>m.role==='user');
+  const explicit=lastUser&&/搜索|搜一下|查一下|帮我查|查查|search|联网/.test(lastUser.content);
+  const convo=msgs.slice();
+  let searched=0;
+  for(let round=0;round<4;round++){
+    let resp;
+    if(searched<2){
+      const opts={tools};
+      if(explicit&&round===0)opts.tool_choice={type:'function',function:{name:'web_search'}};
+      resp=await callOpenAI(convo,opts);
+    }
+    else{resp=await callOpenAI(convo);}
+    if(typeof resp==='string')return resp; // 最终答案
+    // 有工具调用：执行搜索并回填
+    convo.push({role:'assistant',content:resp.content||'',tool_calls:resp.tool_calls});
+    for(const tc of resp.tool_calls){
+      let result='';
+      try{
+        const args=JSON.parse(tc.function&&tc.function.arguments||'{}');
+        const q=(args.query||'').trim();
+        if(q&&searched<2){
+          log(`🌐 [工具调用] web_search: ${q}`,'info');
+          result=await tavilySearch(q);searched++;
+        }else result='搜索次数已达上限，请直接基于已有信息回答。';
+      }catch(e){result='搜索失败:'+e.message;}
+      convo.push({role:'tool',tool_call_id:tc.id,content:result});
+    }
+  }
+  return await callOpenAI(convo); // 兜底收尾
+}
+/* 免费站（纯文本补全，无函数调用）：SEARCH 指令协议 */
+async function freeReplyWithSearch(msgs){
+  const probe=msgs.map(m=>Object.assign({},m));
+  const lastUser=[...probe].reverse().find(m=>m.role==='user');
+  const explicit=lastUser&&/搜索|搜一下|查一下|帮我查|查查|search|联网|最新消息|新闻/.test(lastUser.content);
+  probe[0]={role:'system',content:probe[0].content+`\n\n【联网搜索工具】判断规则：\n1. 问题涉及实时/最新信息（新闻、天气、价格、近期事件、今天日期相关事实），或你不确定、可能过时的知识 → 只输出一行：SEARCH: 搜索关键词（不要输出其他任何内容）\n2. 用户明确要求搜索/查询 → 必须输出 SEARCH\n3. 日常闲聊、常识问题 → 直接正常回答，不输出SEARCH`+(explicit?'\n（注意：本次用户明确要求联网查询，你必须输出SEARCH）':'')};
+  let txt=await callFreeAPI(flattenPrompt(probe));
+  const m=txt.match(/^\s*SEARCH\s*[:：]\s*(.+)$/mi);
+  if(!m)return txt; // 无需搜索，直接就是答案
+  const q=m[1].trim().slice(0,200);
+  log(`🌐 [搜索指令] ${q}`,'info');
+  let results='';
+  try{results=await tavilySearch(q);}
+  catch(e){log('Tavily失败:'+e.message,'warn');return '（联网搜索失败:'+e.message.slice(0,60)+'）';}
+  // 带搜索结果重新生成最终回答（不带SEARCH指令，保留多条消息能力提示）
+  const finalMsgs=msgs.slice();
+  const last=finalMsgs[finalMsgs.length-1];
+  last.content=last.content+`\n\n【联网搜索结果】\n${results}\n（请结合以上搜索资料与你的知识回答，资料仅供参考）`;
+  return await callFreeAPI(flattenPrompt(finalMsgs));
+}
+function flattenPrompt(msgs){
+  let txt='';
+  for(const m of msgs){txt+=`${m.role==='system'?'系统':m.role==='assistant'?'助手':m.role==='tool'?'搜索结果':'用户'}: ${m.content}\n`;}
+  txt+='助手:';
+  return txt;
+}
+async function generateReply(cid,query,name){
+  const p=CFG.providers[CFG.curProvider];
+  if(!p)throw new Error('请先选择一个AI供应商');
+  const useSearch=CFG.search&&(CFG.tavilyKey||'').trim();
+  const msgs=await buildMessages(cid,query);
+  if(p.type==='free'){
+    return useSearch?freeReplyWithSearch(msgs):callFreeAPI(flattenPrompt(msgs));
+  }else{
+    return useSearch?callOpenAIWithTools(msgs):callOpenAI(msgs);
+  }
+}
+async function testSearch(){
+  const key=$('tavilyKey').value.trim()||CFG.tavilyKey;
+  if(!key){toast('请先填写Tavily Key');return;}
+  const bak=CFG.tavilyKey;CFG.tavilyKey=key;
+  toast('搜索测试中...');
+  try{
+    const r=await tavilySearch('今天星期几 最新新闻');
+    log('🔎 Tavily测试成功:\n'+r.slice(0,200),'ok');
+    alert('✅ 联网搜索可用！结果预览:\n'+r.slice(0,300));
+  }catch(e){alert('❌ 搜索失败:\n'+e.message);log('Tavily测试失败:'+e.message,'err');}
+  finally{CFG.tavilyKey=bak;}
+}
+
+/* =============== 长期记忆（自动摘要） =============== */
+let lastSummarizeTime={};
+/* 文本相似度工具：字符二元组重合率（纯前端无需向量库即可做轻量去重/检索） */
+function bigrams(s){
+  const t=(s||'').replace(/\s+/g,'');
+  const g=new Set();
+  for(let i=0;i<t.length-1;i++)g.add(t.slice(i,i+2));
+  return g;
+}
+function overlapRatio(a,b){
+  if(!a.size||!b.size)return 0;
+  let n=0;for(const x of a)if(b.has(x))n++;
+  return n/Math.min(a.size,b.size);
+}
+function simText(a,b){return overlapRatio(bigrams(a),bigrams(b));}
+/* 记忆写入（带去重）：新条目与已有记忆相似度>0.6时合并（保留更长表述与更高重要度），避免记忆库越滚越臃肿 */
+async function addMemories(cid,lines,imp,type){
+  let added=0;
+  try{
+    const old=await dbGetAll('mem','cid',cid);
+    for(const line of lines){
+      const c=String(line||'').trim();
+      if(!c)continue;
+      let dup=null;
+      for(const o of old){if(simText(c,o.content)>0.6){dup=o;break;}}
+      if(dup){
+        const content=c.length>=dup.content.length?c:dup.content;
+        await dbDel('mem',dup.id);
+        await dbAdd('mem',{cid,content,ts:Date.now(),imp:Math.max(dup.imp||3,imp),type,hits:dup.hits||0,lastUsed:dup.lastUsed||0});
+      }else{
+        await dbAdd('mem',{cid,content:c,ts:Date.now(),imp,type});
+      }
+      added++;
+    }
+  }catch(e){log('记忆写入异常:'+e.message,'warn');}
+  return added;
+}
+/* 即时记忆：用户明确说"记住/我叫XX"时立即入库，不等自动摘要 */
+function extractInstantMemory(cid,text){
+  try{
+    const pats=[
+      /(?:请|帮我|你)?(?:牢牢|一定要|永远)?(?:记住|记得)[:：,，\s]+(.{2,60})/i,
+      /我(?:的)?(?:名字|昵称)(?:叫|是)\s*([^\s,，。!！?？]{1,12})/
+    ];
+    for(const p of pats){
+      const m=text.match(p);
+      if(m&&m[1]){
+        addMemories(cid,[m[1].replace(/^[：:\s]+/,'').trim()],5,'instant')
+          .then(n=>{if(n)log(`🧷 即时记忆入库: ${m[1].slice(0,30)}`,'ok');}).catch(()=>{});
+      }
+    }
+  }catch(e){}
+}
+async function tryAutoSummarize(cid){
+  try{
+    const now=Date.now();
+    if(lastSummarizeTime[cid]&&now-lastSummarizeTime[cid]<15000)return;
+    const all=await dbGetAll('msgs','cid',cid);
+    const active=all.filter(m=>!m.archived); // 只统计未归档的
+    if(active.length<CFG.windowSize+4)return;
+    lastSummarizeTime[cid]=now;
+    const sorted=active.sort((a,b)=>a.ts-b.ts);
+    const oldMsgs=sorted.slice(0,sorted.length-CFG.windowSize);
+    if(oldMsgs.length<2)return;
+    log(`🧠 自动总结 ${oldMsgs.length} 条旧消息`,'info');
+    const text=oldMsgs.map(m=>`${m.role==='user'?'用户':m.role==='assistant'?'助手':'?'}: ${m.content}`).join('\n');
+    const prompt=`你是一个对话记忆抽取器，请从下面这段历史对话中提取关键信息，输出2~6条精炼的事实陈述句（中文）。
+要求：
+1. 只输出事实句，不解释、不写"用户说..."这类前缀，不要序号
+2. 重点提取：身份信息、用户偏好/习惯、关键事件、待办约定、项目进展、AI人设要求
+3. 每条不超过40字，一行一条
+4. 若信息矛盾，取最新说法
+5. 信息不足只输出"无关键信息"
+6. 最后一行输出：KW:关键词1,关键词2（不超过5个）
+
+对话：
+${text}`;
+    let sum='';
+    try{
+      const cp=CFG.providers[CFG.curProvider];
+      if(cp.type==='free'){sum=await callFreeAPI(prompt);}
+      else{sum=await callOpenAI([{role:'system',content:'你是精确的对话事实抽取器，严格按要求输出。'},{role:'user',content:prompt}]);}
+    }catch(e){
+      log('AI摘要失败，用启发式兜底','warn');
+      const facts=[];
+      const big=oldMsgs.filter(m=>m.role==='user').map(m=>m.content).join(' ');
+      const pats=[
+        [/我(?:名字|叫|是)\s*([^\s,，。!！?？]{2,10})/g,v=>`用户名叫${v}`],
+        [/(?:记住|记得).*?(?:我|咱)([^，。!]{2,30})/g,v=>`记住：${v}`],
+        [/我(?:喜欢|爱|偏好|讨厌|反感|不喜欢)([^，。!]{2,30})/g,v=>`用户偏好：${v}`],
+        [/我(?:在|住在|来自|是)([^，。!]{2,15})(?:人|的|工作|上学)/g,v=>`用户所在地/身份：${v}`],
+      ];
+      for(const[pat,fn]of pats){
+        const r=new RegExp(pat.source,pat.flags);
+        let m;while((m=r.exec(big))&&facts.length<6)facts.push(fn(m[1]));
+      }
+      sum=facts.join('\n')||'无关键信息';
+    }
+    sum=filterOutput(sum);
+    const lines=sum.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('KW:')&&l!=='无关键信息').slice(0,8);
+    const added=await addMemories(cid,lines,3,'auto');
+    // 归档而非删除：保留完整历史可回看，滑窗逻辑不受影响
+    const d=await openDB();
+    await new Promise((res)=>{
+      const t=d.transaction('msgs','readwrite');const s=t.objectStore('msgs');
+      for(const m of oldMsgs){if(!m.archived){s.put(Object.assign({},m,{archived:1}));}}
+      t.oncomplete=res;
+    });
+    log(`✅ 摘要完成，入库${added}条（${oldMsgs.length}条旧消息已归档）`,'ok');
+    if(_curDetailCid===cid)refreshDetail();
+  }catch(e){log('摘要流程异常:'+e.message,'err');}
+}
+/* 手动总结：不需要选中会话，一键总结所有会话的旧消息 */
+async function manualSummarizeAll(){
+  toast('AI手动总结中...');
+  log('✨ 手动总结开始（所有会话）','info');
+  let totalMem=0,totalSess=0;
+  try{
+    const sessions=await dbGetAll('sess');
+    for(const sess of sessions){
+      const cid=sess.cid;
+      const all=await dbGetAll('msgs','cid',cid);
+      if(all.length<4)continue;
+      const sorted=all.sort((a,b)=>a.ts-b.ts).slice(-100);
+      const text=sorted.map(m=>`${m.role==='user'?'用户':'助手'}: ${m.content}`).join('\n');
+      const prompt=`请从下面这段对话中提取重要信息，输出3~8条精炼事实陈述句，一行一条，每条不超过50字，重点：身份/偏好/事件/约定/关键问答结论。最后一行输出 KW: 关键词。\n\n${text}`;
+      try{
+        const cp=CFG.providers[CFG.curProvider];
+        let sum='';
+        if(cp.type==='free')sum=await callFreeAPI(prompt);
+        else sum=await callOpenAI([{role:'system',content:'你是严谨的对话事实归档助手'},{role:'user',content:prompt}]);
+        sum=filterOutput(sum);
+        const lines=sum.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('KW:')).slice(0,10);
+        const n=await addMemories(cid,lines,4,'manual');
+        if(n){totalMem+=n;totalSess++;log(`  ✓ ${sess.name||cid} 入库${n}条`,'ok');}
+      }catch(e){log(`  ✗ ${sess.name||cid} 总结失败:${e.message}`,'warn');}
+    }
+    toast(`✅ 总结${totalSess}个会话，入库${totalMem}条记忆`);
+    log(`✨ 手动总结完成：${totalSess}个会话，${totalMem}条记忆`,'ok');
+    if($('page-sessions').classList.contains('active'))renderSessions();
+    if(_curDetailCid&&$('page-detail').classList.contains('active'))refreshDetail();
+  }catch(e){toast('总结失败:'+e.message);log('手动总结失败:'+e.message,'err');}
+}
+/* 手动总结当前单个会话 */
+async function manualSummarizeOne(cid){
+  if(!cid){toast('请先进入一个会话');return;}
+  toast('AI总结本会话中...');
+  try{
+    const all=await dbGetAll('msgs','cid',cid);
+    if(all.length<4){toast('消息太少');return;}
+    const sorted=all.sort((a,b)=>a.ts-b.ts).slice(-100);
+    const text=sorted.map(m=>`${m.role==='user'?'用户':'助手'}: ${m.content}`).join('\n');
+    const prompt=`请从下面这段对话中提取重要信息，输出3~8条精炼事实陈述句，一行一条，每条不超过50字，重点：身份/偏好/事件/约定/关键问答结论。最后一行输出 KW: 关键词。\n\n${text}`;
+    const cp=CFG.providers[CFG.curProvider];
+    let sum='';
+    if(cp.type==='free')sum=await callFreeAPI(prompt);
+    else sum=await callOpenAI([{role:'system',content:'你是严谨的对话事实归档助手'},{role:'user',content:prompt}]);
+    sum=filterOutput(sum);
+    const lines=sum.split('\n').map(l=>l.trim()).filter(l=>l&&!l.startsWith('KW:')).slice(0,10);
+    const n=await addMemories(cid,lines,4,'manual');
+    toast(`✅ 入库${n}条记忆`);
+    log(`✨ 手动总结完成，入库${n}条`,'ok');
+    refreshDetail();
+  }catch(e){toast('总结失败:'+e.message);log('手动摘要失败:'+e.message,'err');}
+}
+
+/* =============== UI 渲染 =============== */
+function renderProviders(){
+  const box=$('provList');box.innerHTML='';
+  const ids=Object.keys(CFG.providers);
+  for(const id of ids){
+    const p=CFG.providers[id];
+    const isCur=(CFG.curProvider===id);
+    const el=document.createElement('div');
+    el.className='provider-item'+(isCur?' active':'');
+    const typeLabel=p.type==='free'?'🆓免费':'🔷OpenAI兼容';
+    el.innerHTML=`
+      <div style="flex:1;min-width:0">
+        <input class="input" value="${escapeAttr(p.name)}" data-f="name" data-pid="${id}" placeholder="供应商名称" style="min-height:36px;margin-bottom:4px" onchange="updateProviderField(this)">
+        <div class="pmeta">${typeLabel} · ${p.base?p.base.replace(/^https?:\/\//,'').slice(0,30):'未填URL'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <button class="psel" onclick="selectProvider('${id}')" type="button">${isCur?'✅ 使用中':'选中'}</button>
+        ${id==='free'?'':`<button class="pdel" onclick="deleteProvider('${id}')" type="button">🗑️</button>`}
+      </div>
+      <div style="width:100%;grid-column:1/-1;display:${isCur?'block':'none'}" class="p-edit" data-pid="${id}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px">
+          <select class="select" data-f="type" data-pid="${id}" onchange="updateProviderField(this)" style="min-height:36px">
+            <option value="free"${p.type==='free'?' selected':''}>🆓 免费公益站</option>
+            <option value="openai"${p.type==='openai'?' selected':''}>🔷 OpenAI兼容</option>
+          </select>
+          <input class="input" value="${escapeAttr(p.model||'')}" data-f="model" data-pid="${id}" placeholder="模型名" style="min-height:36px" onchange="updateProviderField(this)">
+        </div>
+        <input class="input" value="${escapeAttr(p.base||'')}" data-f="base" data-pid="${id}" placeholder="Base URL （如 https://api.deepseek.com/v1）" style="margin-top:6px;min-height:36px" onchange="updateProviderField(this)">
+        <input class="input" value="${escapeAttr(p.key||'')}" data-f="key" data-pid="${id}" placeholder="API Key（免费站留空）" type="password" style="margin-top:6px;min-height:36px" onchange="updateProviderField(this)">
+      </div>`;
+    box.appendChild(el);
+  }
+}
+function updateProviderField(inp){
+  const pid=inp.dataset.pid,f=inp.dataset.f;
+  if(!CFG.providers[pid])return;
+  CFG.providers[pid][f]=inp.value;
+  // 类型变化时刷新UI（展开编辑区状态）
+  renderProviders();
+}
+function selectProvider(id){
+  if(!CFG.providers[id])return;
+  CFG.curProvider=id;
+  saveCfg();
+  renderProviders();
+  toast('已切换到：'+CFG.providers[id].name);
+}
+function deleteProvider(id){
+  if(id==='free'){toast('免费站不能删除');return;}
+  if(!confirm('确定删除这个供应商？'))return;
+  delete CFG.providers[id];
+  if(CFG.curProvider===id)CFG.curProvider='free';
+  saveCfg();renderProviders();
+  toast('已删除');
+}
+function addProviderSlot(){
+  const id='custom_'+Date.now();
+  CFG.providers[id]={name:'自定义'+(Object.keys(CFG.providers).length),type:'openai',base:'',key:'',model:''};
+  CFG.curProvider=id;
+  saveCfg();renderProviders();
+  toast('已添加新供应商槽位，请填写URL/Key/模型');
+}
+function escapeAttr(s){return(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function loadForm(){
+  $('appId').value=CFG.appId||'';
+  $('appSecret').value=CFG.appSecret||'';
+  $('sysPrompt').value=CFG.sysPrompt;
+  $('winSize').value=CFG.windowSize;
+  $('mergeWait').value=CFG.mergeWait!=null?CFG.mergeWait:2.5;
+  $('segLen').value=CFG.segLen||2800;
+  $('segGap').value=CFG.segGap||1;
+  $('tavilyKey').value=CFG.tavilyKey||'';
+  CFG.sandbox?switchOn('swSandbox'):switchOff('swSandbox');
+  CFG.injectTime?switchOn('swTime'):switchOff('swTime');
+  CFG.memory?switchOn('swMemory'):switchOff('swMemory');
+  CFG.splitReply?switchOn('swSplit'):switchOff('swSplit');
+  (CFG.multiMsg!==false)?switchOn('swMulti'):switchOff('swMulti');
+  CFG.search?switchOn('swSearch'):switchOff('swSearch');
+  (CFG.mergeMsgs!==false)?switchOn('swMerge'):switchOff('swMerge');
+  CFG.groupReply?switchOn('swGroup'):switchOff('swGroup');
+  CFG.pvtReply?switchOn('swPvt'):switchOff('swPvt');
+  renderProviders();
+}
+function saveConfig(){
+  CFG.appId=$('appId').value.trim();
+  CFG.appSecret=$('appSecret').value.trim();
+  CFG.sysPrompt=$('sysPrompt').value||DEFAULT_CFG.sysPrompt;
+  CFG.windowSize=parseInt($('winSize').value)||15;
+  CFG.mergeWait=parseFloat($('mergeWait').value);if(isNaN(CFG.mergeWait))CFG.mergeWait=2.5;
+  CFG.segLen=Math.min(3000,Math.max(500,parseInt($('segLen').value)||2800));
+  CFG.segGap=Math.min(10,Math.max(0.5,parseFloat($('segGap').value)||1));
+  CFG.tavilyKey=$('tavilyKey').value.trim();
+  CFG.sandbox=switchIs('swSandbox');
+  CFG.injectTime=switchIs('swTime');
+  CFG.memory=switchIs('swMemory');
+  CFG.splitReply=switchIs('swSplit');
+  CFG.multiMsg=switchIs('swMulti');
+  CFG.search=switchIs('swSearch');
+  CFG.mergeMsgs=switchIs('swMerge');
+  CFG.groupReply=switchIs('swGroup');
+  CFG.pvtReply=switchIs('swPvt');
+  saveCfg();
+  toast('✅ 配置已保存');
+  log('💾 配置已保存','ok');
+}
+async function clearAllData(){
+  if(!confirm('确定清空所有配置、会话、记忆？'))return;
+  localStorage.removeItem('qqbot_cfg');
+  try{await dbClear('msgs');await dbClear('mem');await dbClear('sess');}catch(e){}
+  CFG=JSON.parse(JSON.stringify(DEFAULT_CFG));
+  loadForm();toast('已清空');
+}
+async function renderSessions(){
+  const box=$('sessList');
+  try{
+    const list=await dbGetAll('sess');
+    // 顶部统计 + 手动总结按钮
+    let html=`<div class="card"><h3>📊 会话概览</h3>`;
+    html+=`<div class="det-grid" style="margin-bottom:8px">`;
+    html+=`<div class="stat"><div class="n">${list.length}</div><div class="l">会话数</div></div>`;
+    let totalMsg=0,totalMem=0;
+    for(const s of list){const m=await dbGetAll('msgs','cid',s.cid);totalMsg+=m.length;const mm=await dbGetAll('mem','cid',s.cid);totalMem+=mm.length;}
+    html+=`<div class="stat"><div class="n">${totalMsg}</div><div class="l">总消息</div></div>`;
+    html+=`<div class="stat"><div class="n">${totalMem}</div><div class="l">记忆条目</div></div>`;
+    html+=`</div>`;
+    html+=`<button class="btn block" onclick="manualSummarizeAll()" type="button" style="margin-top:6px">✨ AI手动总结所有会话</button>`;
+    html+=`</div>`;
+    if(!list.length){html+='<div class="muted" style="text-align:center;padding:40px">暂无会话，发一条消息就有了</div>';box.innerHTML=html;return;}
+    const sorted=list.sort((a,b)=>b.ts-a.ts);
+    for(const s of sorted){
+      const msgs=await dbGetAll('msgs','cid',s.cid);
+      const mems=await dbGetAll('mem','cid',s.cid);
+      const typeName={group:'群聊',c2c:'私聊',guild:'频道',guild_msg:'频道消息'}[s.type]||s.type;
+      const oldCount=Math.max(0,msgs.length-CFG.windowSize);
+      html+=`<div class="session-item" onclick="showSession('${escapeAttr(s.cid)}')">`;
+      html+=`<div class="ti"><span>${escapeHTML(s.name||'未知')}${oldCount>=4?`<span class="badge">${oldCount}待归档</span>`:''}</span><span class="tm">${new Date(s.ts).toLocaleString()}</span></div>`;
+      html+=`<div class="pr">${typeName} · ${msgs.length}条消息 · ${mems.length}条记忆</div>`;
+      html+=`<div class="pr">${escapeHTML((s.lastMsg||'').slice(0,60))}</div>`;
+      html+=`</div>`;
+    }
+    box.innerHTML=html;
+  }catch(e){box.innerHTML='<div class="muted">加载失败:'+e.message+'</div>';}
+}
+let _curDetailCid=null;
+async function showSession(cid){
+  _curDetailCid=cid;
+  switchTab('detail');
+  refreshDetail();
+}
+async function refreshDetail(){
+  if(!_curDetailCid)return;
+  const cid=_curDetailCid;
+  const box=$('detBody');
+  try{
+    const sessAll=await dbGetAll('sess');
+    const sess=sessAll.find(x=>x.cid===cid);
+    $('detTitle').textContent=sess?`${sess.name||''}`:'会话详情';
+    const msgs=(await dbGetAll('msgs','cid',cid)).sort((a,b)=>a.ts-b.ts);
+    const mems=(await dbGetAll('mem','cid',cid)).sort((a,b)=>(b.imp||0)-(a.imp||0)||b.ts-a.ts);
+    let html='<div class="det-grid">';
+    html+=`<div class="stat"><div class="n">${msgs.length}</div><div class="l">消息</div></div>`;
+    html+=`<div class="stat"><div class="n">${mems.length}</div><div class="l">记忆</div></div>`;
+    html+=`<div class="stat"><div class="n">${Math.max(0,msgs.length-CFG.windowSize)}</div><div class="l">待归档</div></div>`;
+    html+='</div>';
+    html+='<div class="btn-row3">';
+    html+='<button class="btn" onclick="manualSummarizeOne(\''+escapeAttr(cid)+'\')" type="button" style="padding:10px 8px;font-size:13px">✨ 总结本会话</button>';
+    html+='<button class="btn secondary" onclick="refreshDetail()" type="button" style="padding:10px 8px;font-size:13px">🔄 刷新</button>';
+    html+='<button class="btn danger" onclick="deleteSession()" type="button" style="padding:10px 8px;font-size:13px">🗑️ 删除</button>';
+    html+='</div>';
+    html+='<div class="card" style="margin-top:12px"><h3>💬 消息记录（共'+msgs.length+'条）</h3><div id="msgList" style="max-height:50vh;overflow-y:auto">';
+    const recent=msgs.slice(-200); // 显示最近200条，避免页面卡
+    for(const m of recent){
+      const cls=m.role==='user'?'msg-user':'msg-bot';
+      const who=m.role==='user'?(m.name||'用户'):(botInfo.username||'AI');
+      html+=`<div class="msg-meta">${escapeHTML(who)} · ${new Date(m.ts).toLocaleTimeString()}</div>`;
+      html+=`<div class="msg-bubble ${cls}">${escapeHTML(m.content)}</div>`;
+    }
+    html+='</div></div>';
+    html+='<div class="card"><h3>🧠 长期记忆（共'+mems.length+'条）<button class="btn secondary" onclick="clearMemory()" type="button" style="padding:4px 10px;min-height:28px;font-size:12px">清空</button></h3>';
+    if(!mems.length)html+='<div class="muted">暂无记忆</div>';
+    for(const m of mems.slice(0,60)){
+      const tname={manual:'手动',auto:'自动',instant:'即时'}[m.type]||'自动';
+      const pinLbl=(m.imp||0)>=5?'📌 已置顶':'置顶';
+      html+=`<div class="mem-item">${escapeHTML(m.content)}<div class="mt">${new Date(m.ts).toLocaleString()} · ${tname} · 重要度${m.imp||3}${m.hits?` · 命中${m.hits}次`:''} · <button class="mpin" onclick="pinMemory(${m.id})" type="button">${pinLbl}</button> <button class="mpin" onclick="delMemory(${m.id})" type="button">删除</button></div></div>`;
+    }
+    if(mems.length>60)html+=`<div class="muted" style="text-align:center;padding:8px">还有${mems.length-60}条更早记忆...</div>`;
+    html+='</div>';
+    box.innerHTML=html;
+    // 滚到底部
+    setTimeout(()=>{const ml=$('msgList');if(ml)ml.scrollTop=ml.scrollHeight;},100);
+  }catch(e){box.innerHTML='<div class="muted">加载失败:'+e.message+'</div>';}
+}
+/* 实时追加消息到详情页（不刷新全部，保证及时） */
+function appendMsgToDetail(role,content,name){
+  if(!_curDetailCid)return;
+  const ml=$('msgList');
+  if(!ml)return; // 详情页未打开
+  const cls=role==='user'?'msg-user':'msg-bot';
+  const who=role==='user'?(name||'用户'):(botInfo.username||'AI');
+  const meta=document.createElement('div');
+  meta.className='msg-meta';meta.textContent=`${who} · ${new Date().toLocaleTimeString()}`;
+  const bub=document.createElement('div');
+  bub.className=`msg-bubble ${cls}`;bub.textContent=content;
+  ml.appendChild(meta);ml.appendChild(bub);
+  ml.scrollTop=ml.scrollHeight;
+  // 超过200条自动移除最旧的DOM节点，防止页面卡顿
+  while(ml.children.length>400){ml.removeChild(ml.firstChild);}
+}
+function escapeHTML(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+/* 记忆管理：置顶/取消置顶、单条删除、清空 */
+async function pinMemory(id){
+  try{
+    const d=await openDB();
+    await new Promise((res,rej)=>{
+      const t=d.transaction('mem','readwrite');
+      const rq=t.objectStore('mem').get(id);
+      rq.onsuccess=()=>{const m=rq.result;if(m){m.imp=(m.imp||3)>=5?3:6;t.objectStore('mem').put(m);}};
+      t.oncomplete=res;t.onerror=e=>rej(e.target.error);
+    });
+    refreshDetail();
+  }catch(e){toast('操作失败:'+e.message);}
+}
+async function delMemory(id){
+  try{await dbDel('mem',id);refreshDetail();toast('已删除该条记忆');}
+  catch(e){toast('删除失败:'+e.message);}
+}
+async function clearMemory(){
+  if(!_curDetailCid)return;
+  if(!confirm('确定清空本会话的所有长期记忆？'))return;
+  try{
+    const mems=await dbGetAll('mem','cid',_curDetailCid);
+    const d=await openDB();
+    await new Promise((res)=>{const t=d.transaction('mem','readwrite');mems.forEach(m=>t.objectStore('mem').delete(m.id));t.oncomplete=res;});
+    toast('已清空记忆');refreshDetail();
+  }catch(e){toast('清空失败:'+e.message);}
+}
+function backFromDetail(){switchTab('sessions');_curDetailCid=null;}
+async function deleteSession(){
+  if(!_curDetailCid)return;
+  if(!confirm('确定删除这个会话？'))return;
+  try{
+    const d=await openDB();
+    const msgs=await dbGetAll('msgs','cid',_curDetailCid);
+    const mems=await dbGetAll('mem','cid',_curDetailCid);
+    await new Promise((res)=>{const t=d.transaction(['msgs','mem','sess'],'readwrite');
+      msgs.forEach(m=>t.objectStore('msgs').delete(m.id));
+      mems.forEach(m=>t.objectStore('mem').delete(m.id));
+      t.objectStore('sess').delete(_curDetailCid);
+      t.oncomplete=res;});
+    toast('已删除');_curDetailCid=null;switchTab('sessions');
+  }catch(e){toast('删除失败:'+e.message);}
+}
+function clearLog(){$('logBox').innerHTML='';}
+
+/* =============== 测试/诊断 =============== */
+async function testAI(){
+  toast('测试中...');
+  try{
+    const p=CFG.providers[CFG.curProvider];
+    if(!p)throw new Error('请先选择供应商');
+    let reply='';
+    if(p.type==='free')reply=await callFreeAPI('你好，请用一句话打招呼');
+    else reply=await callOpenAI([{role:'user',content:'你好，用一句话打招呼'}]);
+    log(`🧪 AI测试回复: ${reply.slice(0,80)}`,'ok');
+    alert('✅ AI可用！回复:\n'+reply.slice(0,200));
+  }catch(e){alert('❌ AI测试失败:\n'+e.message);log('AI测试失败:'+e.message,'err');}
+}
+async function diag(){
+  log('========== 🔍 开始诊断 ==========','info');
+  log(`UA: ${navigator.userAgent.slice(0,80)}`,'info');
+  log(`协议: ${location.protocol}`,'info');
+  log(`IndexedDB: ${'indexedDB' in window?'✅可用':'❌不可用'}`,'info');
+  log(`WebSocket: ${'WebSocket' in window?'✅可用':'❌不可用'}`,'info');
+  log(`WakeLock: ${'wakeLock' in navigator?'✅可用':'❌不可用'}`,'info');
+  log(`通知: ${'Notification' in window?Notification.permission:'❌不支持'}`,'info');
+  try{
+    const p=CFG.providers[CFG.curProvider];
+    if(!p)throw new Error('未选择供应商');
+    log(`AI供应商: ${p.name} (${p.type})，base=${p.base}`,'info');
+    if(p.type==='free'){
+      const r=await fetch(p.base,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:'hi'}),mode:'cors'});
+      log(`AI接口HTTP状态: ${r.status}`,'info');
+    }else{
+      const r=await fetch(p.base.replace(/\/+$/,'')+'/models',{headers:p.key?{'Authorization':'Bearer '+p.key}:{},mode:'cors'});
+      log(`AI接口HTTP状态: ${r.status}`,'info');
+    }
+    log('AI接口: ✅ 可达','ok');
+  }catch(e){log('AI接口: ❌ '+e.message,'err');}
+  if(CFG.appId&&CFG.appSecret){
+    const body=JSON.stringify({appId:CFG.appId,clientSecret:CFG.appSecret});
+    try{
+      const r=await fetch('https://bots.qq.com/app/getAppAccessToken',{method:'POST',headers:{'Content-Type':'application/json'},body,mode:'cors'});
+      log(`Token直连: HTTP ${r.status} ${r.ok?'✅可达':'❌被CORS拦截'}`,r.ok?'ok':'warn');
+    }catch(e){log('Token直连: ❌ 被CORS拦截 ('+e.message+')','warn');}
+    for(const mk of PROXIES){
+      try{
+        const u=mk('https://bots.qq.com/app/getAppAccessToken');
+        const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body,mode:'cors'});
+        log(`Token代理: HTTP ${r.status} ${r.ok?'✅可用':'⚠️异常'}`,r.ok?'ok':'warn');
+        if(r.ok)break;
+      }catch(e){log(`Token代理: ❌ ${e.message}`,'err');}
+    }
+  }else{log('Token: ⚠️ 未填AppID/Secret，跳过测试','warn');}
+  try{
+    await new Promise((res,rej)=>{
+      const w=new WebSocket('wss://api.sgroup.qq.com/websocket');
+      const tm=setTimeout(()=>{w.close();rej(new Error('3s超时'));},3000);
+      w.onopen=()=>{clearTimeout(tm);w.close();res();};
+      w.onerror=()=>{clearTimeout(tm);rej(new Error('连接错误'));};
+    });
+    log('WS网关: ✅ 可达','ok');
+  }catch(e){log('WS网关: ❌ '+e.message,'err');}
+  try{
+    const r=await fetch('https://api.sgroup.qq.com/gateway',{headers:{'Authorization':'QQBot test'},mode:'cors'});
+    log(`api.sgroup.qq.com 直连: HTTP ${r.status}（CORS头${r.headers.get('access-control-allow-origin')?'✅有':'❌无'}）`,r.headers.get('access-control-allow-origin')?'ok':'warn');
+  }catch(e){log('api.sgroup.qq.com 直连: ❌ 无CORS头，必须走代理','warn');}
+  if(CFG.search&&(CFG.tavilyKey||'').trim()){
+    try{
+      const r=await tavilySearch('连接测试');
+      log('Tavily搜索: ✅ 可用','ok');
+    }catch(e){log('Tavily搜索: ❌ '+e.message,'err');}
+  }else{log('Tavily搜索: ⚠️ 未启用或未填Key，跳过','warn');}
+  log('========== 🔍 诊断结束 ==========','info');
+  switchTab('log');toast('诊断完成，看日志');
+}
+function useManualToken(){
+  const v=$('manualToken').value.trim();
+  if(!v){toast('请先粘贴Token');return;}
+  accessToken=v;tokenExpireAt=Date.now()+7000*1000;
+  log('✅ 手动Token已设置','ok');updateTokenUI();toast('Token已设置');
+}
+function refreshToken(){accessToken='';tokenExpireAt=0;fetchNewToken().catch(e=>{toast('失败:'+e.message);log('刷新Token失败:'+e.message,'err');});}
+
+/* =============== 动态背景：随机图（失败静默回退到渐变光斑） =============== */
+const BG_APIS=['https://t.alcy.cc/mp/','https://moe.jitsu.top/api/'];
+let bgTryIdx=0;
+function loadBgImage(){
+  if(bgTryIdx>=BG_APIS.length){log('🖼️ 背景图不可用，使用动态渐变背景','info');return;}
+  const url=BG_APIS[bgTryIdx++]+'?t='+Date.now();
+  const img=$('bgImg');
+  if(!img)return;
+  img.onload=()=>{
+    img.classList.add('show');
+    log('🖼️ 动态背景已加载','ok');
+    // 每5分钟换一张，保持新鲜感（onerror 不会触发已成功图的状态）
+    setTimeout(()=>{if(!document.hidden)rotateBg();},5*60*1000);
+  };
+  img.onerror=()=>{
+    img.classList.remove('show');
+    log(`背景源${bgTryIdx}失败，尝试下一个`,'warn');
+    loadBgImage();
+  };
+  img.src=url;
+}
+let rotating=false;
+function rotateBg(){
+  if(rotating)return;
+  rotating=true;
+  const img=$('bgImg');
+  img.classList.remove('show');
+  // 新图加载完成后再淡入
+  const url=BG_APIS[Math.floor(Math.random()*BG_APIS.length)]+'?t='+Date.now();
+  const probe=new Image();
+  probe.onload=()=>{img.src=url;img.onload=()=>img.classList.add('show');rotating=false;};
+  probe.onerror=()=>{img.classList.add('show');rotating=false;}; // 换不动就保持原图
+  probe.src=url;
+}
+/* 初始化背景 */
+(function initBg(){
+  const img=$('bgImg');
+  if(!img)return;
+  loadBgImage();
+  // 从后台切回时检查背景是否还在（浏览器可能回收）
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&!img.classList.contains('show')&&img.complete===false)loadBgImage();
+  });
+})();
+
+/* =============== 主页画廊卡：独立图片加载与轮换 =============== */
+let heroRotating=false;
+function heroUrl(){
+  return BG_APIS[Math.floor(Math.random()*BG_APIS.length)]+'?h='+Date.now()+Math.floor(Math.random()*1000);
+}
+function loadHeroImage(){
+  const card=$('heroCard'),img=$('heroImg');
+  if(!card||!img)return;
+  const probe=new Image();
+  probe.onload=()=>{
+    img.classList.remove('show');
+    setTimeout(()=>{
+      img.src=probe.src;
+      img.onload=()=>{
+        img.classList.add('show');
+        card.classList.add('loaded');
+        // 重启 Ken Burns 动画
+        img.style.animation='none';void img.offsetWidth;img.style.animation='';
+      };
+    },300);
+    // 每4分钟自动换图
+    setTimeout(()=>{if(!document.hidden)rotateHero();},4*60*1000);
+  };
+  probe.onerror=()=>{card.classList.add('loaded');}; // 加载失败保持渐变底+微光
+  probe.src=heroUrl();
+}
+function rotateHero(manual){
+  const card=$('heroCard');
+  if(!card||heroRotating)return;
+  heroRotating=true;
+  if(manual&&card.querySelector('.hero-refresh')){
+    const b=card.querySelector('.hero-refresh');
+    b.classList.remove('spinning');void b.offsetWidth;b.classList.add('spinning');
+  }
+  card.classList.add('switching');
+  setTimeout(()=>card.classList.remove('switching'),450);
+  loadHeroImage();
+  setTimeout(()=>{heroRotating=false;},1200);
+}
+(function initHero(){loadHeroImage();})();
+
+/* =============== 初始化 =============== */
+async function init(){
+  try{await openDB();log('📦 IndexedDB初始化成功','ok');}catch(e){log('IndexedDB失败:'+e.message,'err');}
+  loadForm();
+  if(accessToken)updateTokenUI();
+  setInterval(updateTokenUI,5000);
+  // 会话列表2秒自动刷新（仅当会话页激活）
+  setInterval(()=>{if($('page-sessions').classList.contains('active'))renderSessions();},2000);
+  log('QQBot AI v12 已加载（AI分条/联网搜索/检索式长期记忆）','ok');
+  if(!CFG.appId||!CFG.appSecret)log('⚠️ 请先到「设置」填写AppID和AppSecret','warn');
+  else log('👉 点「🚀启动机器人」开始，若失败请先点「🔍诊断」','info');
+  // 后台重获wakeLock + 切回前台检测重连
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'){
+      log('👀 页面回到前台，检测连接...','info');
+      if(running&&!wakeLock){
+        navigator.wakeLock?.request('screen').then(l=>{wakeLock=l;log('🔒 屏幕锁恢复','ok');}).catch(()=>{});
+      }
+      if(running&&(!ws||ws.readyState!==1)){
+        log('⚠️ 发现WS已断开，立即重连','warn');
+        clearTimeout(reconnectTimer);reconnectTimer=setTimeout(reconnect,500);
+      }
+    }
+  });
+  // 页面关闭前提示
+  window.addEventListener('beforeunload',e=>{
+    if(running){e.preventDefault();e.returnValue='机器人正在运行，确定离开？';return e.returnValue;}
+  });
+}
+init();
+</script>
+</body>
+</html><!--16288915832573747210082319-->
