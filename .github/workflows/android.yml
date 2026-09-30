@@ -24,11 +24,19 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install SDK packages
-        run: sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null || true
+      - name: Ensure Android SDK
+        run: |
+          SDKMANAGER="$(command -v sdkmanager || true)"
+          if [ -z "$SDKMANAGER" ]; then
+            SDKMANAGER="$(ls -d /usr/local/lib/android/sdk/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -n 1 || true)"
+          fi
+          echo "sdkmanager: $SDKMANAGER"
+          if [ -n "$SDKMANAGER" ]; then
+            yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+            "$SDKMANAGER" --install "platforms;android-34" "build-tools;34.0.0" "platform-tools" > /dev/null 2>&1 || true
+          fi
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -70,9 +78,15 @@ jobs:
           path: QQBot.apk
 
       - name: Remove stale release asset
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh release delete-asset apk QQBot.apk -y || true
+        run: |
+          ASSET_ID=$(curl -s -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/apk" \
+            | python3 -c "import sys,json;d=json.load(sys.stdin);print(next((a['id'] for a in d.get('assets',[]) if a['name']=='QQBot.apk'),''))" 2>/dev/null || true)
+          if [ -n "$ASSET_ID" ]; then
+            echo "删除旧资源 id=$ASSET_ID"
+            curl -s -X DELETE -H "Authorization: Bearer ${{ github.token }}" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/assets/$ASSET_ID" || true
+          fi
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -84,7 +98,6 @@ jobs:
             QQBot AI — Android 客户端（WebView 外壳）
 
             - 版本：1.${{ github.run_number }}（versionCode ${{ github.run_number }}）
-            - 构建时间：${{ github.event.repository.updated_at }}
             - 说明：直接加载线上网页 https://hiweny.github.io/QQbot/ ，网页更新后 App 自动同步
             - 支持覆盖更新（同一签名，安装时直接覆盖旧版本）
 
