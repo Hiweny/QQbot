@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">QQBot AI</string>
+    <string name="notif_channel_status">机器人状态</string>
+    <string name="notif_channel_status_desc">常驻通知，显示机器人实时运行状态</string>
+    <string name="notif_channel_reply">消息通知</string>
+    <string name="notif_channel_reply_desc">机器人回复消息时的通知</string>
+</resources>

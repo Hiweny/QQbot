@@ -1,0 +1,60 @@
+plugins {
+    id 'com.android.application'
+}
+
+def vCode = (System.getenv('VERSION_CODE') ?: '1')
+def vName = (System.getenv('VERSION_NAME') ?: '1.0')
+def ksPath = System.getenv('KEYSTORE_FILE')
+
+android {
+    namespace 'com.hiweny.qqbot'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.hiweny.qqbot'
+        minSdk 24
+        targetSdk 34
+        versionCode vCode.toInteger()
+        versionName vName
+    }
+
+    signingConfigs {
+        if (ksPath != null && !ksPath.isEmpty()) {
+            release {
+                storeFile file(ksPath)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            if (ksPath != null && !ksPath.isEmpty()) {
+                signingConfig signingConfigs.release
+            }
+        }
+        debug {
+            applicationIdSuffix '.debug'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.7.0'
+    implementation 'androidx.core:core:1.13.1'
+    implementation 'androidx.webkit:webkit:1.11.0'
+}
