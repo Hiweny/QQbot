@@ -115,4 +115,147 @@
       window.Notification = NativeNotification;
     }
   } catch (e) {}
+
+  /* ============ 4. 原生 HTTP 通道：拦截跨域请求，绕过 CORS ============ */
+  try {
+    installHttpBridge();
+  } catch (e) {}
+
+  function installHttpBridge() {
+    if (!(window.QQBotNative && typeof QQBotNative.httpRequest === "function")) return;
+
+    var seq = 0;
+    var pending = {};
+
+    function b64ToBytes(b64) {
+      var bin = atob(b64), n = bin.length, out = new Uint8Array(n);
+      for (var i = 0; i < n; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+    function bytesToB64(bytes) {
+      var CH = 0x8000, s = "";
+      for (var i = 0; i < bytes.length; i += CH) {
+        s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+      }
+      return btoa(s);
+    }
+    function utf8(str) { return new TextEncoder().encode(str); }
+
+    // Android 原生请求完成后的回调入口
+    window.__QQBOT_HTTP_DONE__ = function (id, resultJson) {
+      var p = pending[id];
+      if (!p) return;
+      delete pending[id];
+      var r;
+      try { r = JSON.parse(resultJson); } catch (e) { p.reject(new TypeError("bad bridge response")); return; }
+      if (!r || !r.ok) { p.reject(new TypeError((r && r.error) || "network error")); return; }
+      try {
+        var status = r.status || 200;
+        var nullBody = (status === 204 || status === 205 || status === 304);
+        var body = nullBody ? null : b64ToBytes(r.body || "");
+        var headers = new Headers();
+        var h = r.headers || {};
+        for (var k in h) {
+          if (Object.prototype.hasOwnProperty.call(h, k)) {
+            try { headers.append(k, h[k]); } catch (e) {}
+          }
+        }
+        p.resolve(new Response(body, {
+          status: status,
+          statusText: r.statusText || "",
+          headers: headers
+        }));
+      } catch (e) { p.reject(e); }
+    };
+
+    // 把已知 CORS 代理地址还原成真实目标地址，直连不再依赖代理
+    function unwrapProxy(u) {
+      try {
+        var m;
+        if ((m = /^https?:\/\/proxy\.cors\.sh\/(.+)$/i.exec(u))) return m[1];
+        if ((m = /^https?:\/\/api\.allorigins\.win\/raw\?url=(.+)$/i.exec(u))) return decodeURIComponent(m[1]);
+        if ((m = /^https?:\/\/corsproxy\.io\/\?(.+)$/i.exec(u))) return decodeURIComponent(m[1]);
+        if ((m = /^https?:\/\/api\.allorigins\.win\/get\?url=(.+)$/i.exec(u))) return decodeURIComponent(m[1]);
+      } catch (e) {}
+      return u;
+    }
+
+    function normHeaders(h) {
+      var out = {};
+      if (!h) return out;
+      try {
+        if (typeof Headers !== "undefined" && h instanceof Headers) {
+          h.forEach(function (v, k) { out[k] = v; });
+        } else if (Object.prototype.toString.call(h) === "[object Array]") {
+          h.forEach(function (pair) { if (pair && pair.length >= 2) out[pair[0]] = pair[1]; });
+        } else {
+          for (var k in h) {
+            if (Object.prototype.hasOwnProperty.call(h, k) && h[k] != null) out[k] = String(h[k]);
+          }
+        }
+      } catch (e) {}
+      return out;
+    }
+
+    function sendNative(url, method, headers, body) {
+      return new Promise(function (resolve, reject) {
+        var id = ++seq;
+        pending[id] = { resolve: resolve, reject: reject };
+        var payload = { url: url, method: method, headers: headers, bodyBase64: null };
+        function go(b64) {
+          payload.bodyBase64 = b64;
+          try { QQBotNative.httpRequest(String(id), JSON.stringify(payload)); }
+          catch (e) { delete pending[id]; reject(new TypeError("native bridge unavailable")); }
+        }
+        try {
+          if (body === undefined || body === null) return go(null);
+          if (typeof body === "string") return go(bytesToB64(utf8(body)));
+          if (typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams) return go(bytesToB64(utf8(body.toString())));
+          if (typeof ArrayBuffer !== "undefined" && body instanceof ArrayBuffer) return go(bytesToB64(new Uint8Array(body)));
+          if (ArrayBuffer.isView(body)) return go(bytesToB64(new Uint8Array(body.buffer, body.byteOffset, body.byteLength)));
+          if (typeof Blob !== "undefined" && body instanceof Blob) {
+            var fr = new FileReader();
+            fr.onload = function () { go(bytesToB64(new Uint8Array(fr.result))); };
+            fr.onerror = function () { delete pending[id]; reject(new TypeError("body read failed")); };
+            fr.readAsArrayBuffer(body);
+            return;
+          }
+          return go(bytesToB64(utf8(String(body))));
+        } catch (e) { delete pending[id]; reject(e); }
+      });
+    }
+
+    var origin = (location && location.origin) || "";
+    var origFetch = window.fetch ? window.fetch.bind(window) : null;
+
+    window.fetch = function (input, init) {
+      try {
+        var url = null;
+        if (typeof input === "string") url = input;
+        else if (typeof URL !== "undefined" && input instanceof URL) url = input.href;
+        if (url === null) return origFetch ? origFetch(input, init) : Promise.reject(new TypeError("unsupported input"));
+
+        var method = "GET", headers = {}, body;
+        if (init) {
+          if (init.method) method = String(init.method).toUpperCase();
+          if (init.headers) {
+            var ih = normHeaders(init.headers);
+            for (var k in ih) headers[k] = ih[k];
+          }
+          if ("body" in init) body = init.body;
+        }
+
+        var abs = new URL(url, location.href);
+        if (abs.protocol !== "http:" && abs.protocol !== "https:") {
+          return origFetch ? origFetch(input, init) : Promise.reject(new TypeError("unsupported scheme"));
+        }
+        // 同源请求交给原生 fetch；所有跨域请求走 App 本地通道
+        if (abs.origin === origin) {
+          return origFetch ? origFetch(input, init) : Promise.reject(new TypeError("no fetch"));
+        }
+        return sendNative(unwrapProxy(abs.href), method, headers, body);
+      } catch (e) {}
+      return origFetch ? origFetch(input, init) : Promise.reject(new TypeError("no fetch"));
+    };
+  }
 })();

@@ -127,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
             }
         } catch (Throwable ignored) {}
 
-        webView.addJavascriptInterface(new StatusBridge(getApplicationContext()), "QQBotNative");
+        webView.addJavascriptInterface(new StatusBridge(getApplicationContext(), webView), "QQBotNative");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
