@@ -92,7 +92,7 @@ public class StatusBridge {
                 try {
                     w.evaluateJavascript(
                             "window.__QQBOT_HTTP_DONE__&&window.__QQBOT_HTTP_DONE__("
-                                    + JSONObject.quote(id) + "," + r + ");", null);
+                                    + JSONObject.quote(id) + "," + JSONObject.quote(r) + ");", null);
                 } catch (Throwable ignored) {}
             });
         });

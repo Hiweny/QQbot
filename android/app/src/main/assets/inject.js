@@ -146,9 +146,14 @@
       var p = pending[id];
       if (!p) return;
       delete pending[id];
-      var r;
-      try { r = JSON.parse(resultJson); } catch (e) { p.reject(new TypeError("bad bridge response")); return; }
-      if (!r || !r.ok) { p.reject(new TypeError((r && r.error) || "network error")); return; }
+      var r = null;
+      try {
+        // 兼容两种传参：JSON 字符串，或直接传对象
+        if (typeof resultJson === "string") r = JSON.parse(resultJson);
+        else if (resultJson && typeof resultJson === "object") r = resultJson;
+      } catch (e) { r = null; }
+      if (!r || typeof r !== "object") { p.reject(new TypeError("bad bridge response")); return; }
+      if (!r.ok) { p.reject(new TypeError(r.error || "network error")); return; }
       try {
         var status = r.status || 200;
         var nullBody = (status === 204 || status === 205 || status === 304);
